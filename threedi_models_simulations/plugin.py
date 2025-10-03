@@ -1,7 +1,7 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QAction
 
-from threedi_models_simulations.constants import PLUGIN_NAME, plugin_icon
+from threedi_models_simulations.constants import PLUGIN_NAME, logo_icon, plugin_icon
 from threedi_models_simulations.widgets.dock import DockWidget
 from threedi_models_simulations.widgets.wizard import SimulationWizard
 
@@ -17,6 +17,12 @@ class ModelsSimulationsPlugin:
         )
         self.action.triggered.connect(self.run)
         self.toolbar.addAction(self.action)
+
+        self.action_wiz = QAction(
+            logo_icon, "Start simulation wizard", self.iface.mainWindow()
+        )
+        self.action_wiz.triggered.connect(self.start_simulation_wizard)
+        self.toolbar.addAction(self.action_wiz)
 
         self.dockwidget = DockWidget(None, self.iface)
         self.dockwidget.setVisible(False)
@@ -36,6 +42,7 @@ class ModelsSimulationsPlugin:
 
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
+        self.iface.removeToolBarIcon(self.action_wiz)
         self.iface.removeDockWidget(self.dockwidget)
         del self.dockwidget
         del self.toolbar
