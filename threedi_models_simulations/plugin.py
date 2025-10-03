@@ -1,6 +1,8 @@
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QAction
 
 from threedi_models_simulations.constants import PLUGIN_NAME, plugin_icon
+from threedi_models_simulations.widgets.dock import DockWidget
 
 
 class ModelsSimulationsPlugin:
@@ -13,8 +15,17 @@ class ModelsSimulationsPlugin:
         self.action.triggered.connect(self.run)
         self.toolbar.addAction(self.action)
 
+        self.dockwidget = DockWidget(None, self.iface)
+        self.iface.addTabifiedDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea, self.dockwidget, raiseTab=True
+        )
+        self.dockwidget.setVisible(False)
+
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
+        self.iface.removeDockWidget(self.dockwidget)
+        del self.dockwidget
+        del self.toolbar
 
     def run(self):
-        pass
+        self.dockwidget.setVisible(not self.dockwidget.isVisible())
