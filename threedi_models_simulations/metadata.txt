@@ -1,0 +1,38 @@
+[general]
+name=3Di Models and Simulations
+qgisMinimumVersion=3.28
+qgisMaximumVersion=3.99
+description=3Di Models and Simulations
+version=0.1
+author=Nelen & Schuurmans
+email=servicedesk@nelen-schuurmans.nl
+
+about=Work with 3Di models and simulations in the cloud from the 3Di Modeller Interface.
+
+    Upload, download and check schematisations, start simulations, and download results. A 3Di subscription is required.
+
+    For questions on 3Di or the use of this plugin please contact us via
+    servicedesk@nelen-schuurmans.nl
+
+tracker=https://github.com/nens/threedi-models-simulations/issues
+repository=https://github.com/nens/threedi-models-simulations
+
+# Recommended items:
+
+hasProcessingProvider=no
+changelog=https://docs.3di.live/a_releasenotes_3di_mi.html
+
+# Tags are comma separated with spaces allowed
+tags=3Di, simulation, flood modelling, flood, river, water
+
+homepage=https://3diwatermanagement.com/
+category=Plugins
+icon=icons/icon.png
+experimental=False
+deprecated=False
+plugin_dependencies=Nelen and Schuurmans Dependency Loader==1.2.3
+
+
+# If the plugin can run on QGIS Server.
+server=False
+supportsQt6=True

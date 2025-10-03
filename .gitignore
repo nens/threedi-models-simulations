@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+nens_dependency_loader
+plugin_reloader
+threedi_models_and_simulations
+
 # Distribution / packaging
 .Python
 build/
