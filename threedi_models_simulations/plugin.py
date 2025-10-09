@@ -2,7 +2,9 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QAction
 
 from threedi_models_simulations.constants import PLUGIN_NAME, logo_icon, plugin_icon
+from threedi_models_simulations.models.simulation import Simulation
 from threedi_models_simulations.widgets.dock import DockWidget
+from threedi_models_simulations.widgets.settings import SettingsDialog
 from threedi_models_simulations.widgets.wizard import SimulationWizard
 
 
@@ -35,6 +37,7 @@ class ModelsSimulationsPlugin:
 
     def start_simulation_wizard(self):
         # pass it a model
+        # s = Simulation()
         wiz = SimulationWizard(self.dockwidget)
         wiz.exec()
 
@@ -48,4 +51,6 @@ class ModelsSimulationsPlugin:
         del self.toolbar
 
     def run(self):
+        dialog = SettingsDialog(self.dockwidget)
+        dialog.exec()
         self.dockwidget.setVisible(not self.dockwidget.isVisible())
