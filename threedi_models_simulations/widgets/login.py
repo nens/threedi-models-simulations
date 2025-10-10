@@ -10,10 +10,10 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from threedi_api_client import ThreediApi
 from threedi_api_client.openapi import ApiException
 
 from threedi_models_simulations.authentication import get_3di_auth
-from threedi_models_simulations.logging import Logger
 from threedi_models_simulations.threedi_api_utils import (
     extract_error_message,
     get_api_client_with_personal_api_token,
@@ -27,23 +27,12 @@ class AuthorizationException(Exception):
 
 
 class LogInDialog(QDialog):
-    """Dialog with widgets and methods used in logging process."""
-
-    LOGGED_IN = False
-
-    def __init__(self, plugin_dock, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        # self.plugin_dock = plugin_dock
-        # self.communication = self.plugin_dock.communication
-        # self.user = None
-        # self.user_first_name = None
-        # self.user_last_name = None
-        # self.user_full_name = None
-        # self.threedi_api = None
-        # self.api_url = self.plugin_dock.plugin_settings.api_url
-        # self.client_id = None
-        # self.scope = None
-        # self.organisations = {}
+
+        self.threedi_api = None
+        self.user_info = None
+        self.organisations = {}
 
         self.setWindowTitle("Log in")
 
@@ -94,6 +83,15 @@ class LogInDialog(QDialog):
         msg_widget.setLayout(verticalLayout)
         gridLayout.addWidget(msg_widget)
 
+    def get_user_info(self):
+        return self.user_info
+
+    def get_organisations(self):
+        return self.organisations
+
+    def get_api(self):
+        return self.threedi_api
+
     def exec(self):
         self.login()
         return super().exec()
@@ -104,20 +102,23 @@ class LogInDialog(QDialog):
         self.log_pbar.setValue(25)
 
         self.worker = LoginWorker()
+        self.worker.api_success.connect(self.on_api_success)
         self.worker.profile_success.connect(self.on_profile_success)
         self.worker.org_success.connect(self.on_organisation_success)
         self.worker.error.connect(self.on_error)
         self.worker.start()
 
+    def on_api_success(self, api):
+        self.threedi_api = api
+
     def on_profile_success(self, user_info):
-        self.user = user_info["username"]
-        self.user_first_name = user_info["first_name"]
-        self.user_last_name = user_info["last_name"]
-        self.user_full_name = f"{self.user_first_name} {self.user_last_name}"
+        self.user_info = user_info
+
         self.log_pbar.setValue(50)
 
     def on_organisation_success(self, orgs):
         self.organisations = orgs
+
         self.log_pbar.setValue(100)
         self.fetch_msg.show()
         self.done_msg.show()
@@ -125,14 +126,12 @@ class LogInDialog(QDialog):
         QTimer.singleShot(1000, self.accept)
 
     def on_error(self, msg):
-        QMessageBox.warning(
-            self,
-            "Error",
-            msg,
-        )
+        QMessageBox.warning(self, "Error", msg)
+        QTimer.singleShot(1000, self.reject)
 
 
 class LoginWorker(QThread):
+    api_success = pyqtSignal(ThreediApi)
     profile_success = pyqtSignal(dict)
     org_success = pyqtSignal(dict)
     error = pyqtSignal(str)
@@ -146,12 +145,15 @@ class LoginWorker(QThread):
             threedi_api = get_api_client_with_personal_api_token(
                 personal_api_token, api_url()
             )
+            self.api_success.emit(threedi_api)
+
             user_profile = threedi_api.auth_profile_list()
             user_info = {
                 "username": user_profile.username,
                 "first_name": user_profile.first_name,
                 "last_name": user_profile.last_name,
             }
+
             self.profile_success.emit(user_info)
             organisations = paginated_fetch(threedi_api.organisations_list)
             orgs = {org.unique_id: org for org in organisations}
