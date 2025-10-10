@@ -1,7 +1,7 @@
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QAction
 
-from threedi_models_simulations.constants import PLUGIN_NAME, logo_icon, plugin_icon
+from threedi_models_simulations.constants import LOGO_ICON, PLUGIN_ICON, PLUGIN_NAME
 from threedi_models_simulations.models.simulation import Simulation
 from threedi_models_simulations.widgets.dock import DockWidget
 from threedi_models_simulations.widgets.settings import SettingsDialog
@@ -15,13 +15,13 @@ class ModelsSimulationsPlugin:
     def initGui(self):
         self.toolbar = self.iface.addToolBar(PLUGIN_NAME)
         self.action = QAction(
-            plugin_icon, "Toggle M&&S plugin", self.iface.mainWindow()
+            PLUGIN_ICON, "Toggle M&&S plugin", self.iface.mainWindow()
         )
         self.action.triggered.connect(self.run)
         self.toolbar.addAction(self.action)
 
         self.action_wiz = QAction(
-            logo_icon, "Start simulation wizard", self.iface.mainWindow()
+            LOGO_ICON, "Start simulation wizard", self.iface.mainWindow()
         )
         self.action_wiz.triggered.connect(self.start_simulation_wizard)
         self.toolbar.addAction(self.action_wiz)
