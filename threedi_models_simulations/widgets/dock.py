@@ -3,7 +3,10 @@ from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
-from threedi_models_simulations.schematisation_loader import SchematisationLoader
+from threedi_models_simulations.schematisation_loader import (
+    SchematisationLoader,
+    SchematisationLoaderActions,
+)
 from threedi_models_simulations.widgets.login import LogInDialog
 
 FORM_CLASS, _ = uic.loadUiType(
@@ -78,9 +81,17 @@ class DockWidget(QDockWidget, FORM_CLASS):
         # self.initialize_simulation_overview()
         # self.initialize_simulation_results()
 
-    def load_local_schematisation(self):
+    def load_local_schematisation(
+        self,
+        local_schematisation=None,
+        action=SchematisationLoaderActions.LOADED,
+        custom_geopackage_filepath=None,
+    ):
+        # This function can also be called externally on the plugin instance
         self.current_local_schematisation = (
-            self.schematisation_loader.load_local_schematisation()
+            self.schematisation_loader.load_local_schematisation(
+                local_schematisation, action, custom_geopackage_filepath
+            )
         )
         self.update_schematisation_view()
 
