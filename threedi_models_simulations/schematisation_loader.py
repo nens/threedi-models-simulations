@@ -45,7 +45,7 @@ class SchematisationLoader:
         action=SchematisationLoaderActions.LOADED,
         custom_geopackage_filepath=None,
     ):
-        """Load locally stored schematisation."""
+        """Load locally stored schematisation. Returns schematisation"""
         if not local_schematisation:
             work_dir = QSettings().value("threedi/working_dir", "")
             schematisation_load = SchematisationLoadDialog(work_dir, self.parent)
@@ -53,9 +53,6 @@ class SchematisationLoader:
             local_schematisation = schematisation_load.selected_local_schematisation
         if local_schematisation and local_schematisation.schematisation_db_filepath:
             try:
-                # TODO
-                # self.plugin_dock.current_local_schematisation = local_schematisation
-                # self.plugin_dock.update_schematisation_view()
                 geopackage_filepath = (
                     local_schematisation.schematisation_db_filepath
                     if not custom_geopackage_filepath
@@ -76,11 +73,11 @@ class SchematisationLoader:
                         f"\n{geopackage_filepath}"
                     )
                     UICommunication.show_warn(msg, self.parent, "Schematisation")
+                return local_schematisation
             except (TypeError, ValueError):
                 error_msg = "Invalid schematisation directory structure. Loading schematisation canceled."
                 UICommunication.show_error(error_msg, self.parent, "Schematisation")
-                # TODO
-                # self.plugin_dock.update_schematisation_view()
+        return None
 
     # # @api_client_required  # TODO
     # def download_schematisation(self):
