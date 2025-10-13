@@ -1,6 +1,8 @@
 from qgis.core import QgsApplication, QgsAuthMethodConfig
 from qgis.PyQt.QtCore import QSettings
 
+# TODO: @api_client_required wrapper
+
 
 def get_3di_auth():
     """Getting 3Di credentials from the QGIS Authorization Manager."""

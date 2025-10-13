@@ -1,6 +1,8 @@
 import os
 from uuid import uuid4
 
+from qgis.utils import plugins
+
 
 def is_writable(working_dir: str) -> bool:
     """Try to write and remove an empty text file into given location."""
@@ -14,3 +16,17 @@ def is_writable(working_dir: str) -> bool:
         return False
     else:
         return True
+
+
+def get_plugin_instance(plugin_name):
+    """Return given plugin name instance."""
+    try:
+        plugin_instance = plugins[plugin_name]
+    except (AttributeError, KeyError):
+        plugin_instance = None
+    return plugin_instance
+
+
+def get_schematisation_editor_instance():
+    """Return Schematisation Editor plugin instance."""
+    return get_plugin_instance("threedi_schematisation_editor")

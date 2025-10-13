@@ -3,6 +3,7 @@ from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
+from threedi_models_simulations.schematisation_loader import SchematisationLoader
 from threedi_models_simulations.widgets.login import LogInDialog
 
 FORM_CLASS, _ = uic.loadUiType(
@@ -13,21 +14,16 @@ FORM_CLASS, _ = uic.loadUiType(
 class DockWidget(QDockWidget, FORM_CLASS):
     def __init__(self, parent, iface):
         super().__init__(parent)
-        self.iface = iface
-
         self.setupUi(self)
 
-        # Set logo
-        # path_3di_logo = str(PLUGIN_DIR / "icons" / "icon.png")
-        # logo_3di = QPixmap(path_3di_logo)
-        # logo_3di = logo_3di.scaledToHeight(30)
-        # self.logo.setPixmap(logo_3di)
-
+        self.iface = iface
         self.threedi_api = None
         self.current_user_info = None
         self.organisations = {}
+        self.schematisation_loader = SchematisationLoader(self)
 
         self.btn_log_in_out.clicked.connect(self.on_log_in_log_out)
+        self.btn_load_schematisation.clicked.connect(self.load_local_schematisation)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -78,3 +74,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         # self.initialize_simulations_progresses_thread()
         # self.initialize_simulation_overview()
         # self.initialize_simulation_results()
+
+    def load_local_schematisation(self):
+        if self.schematisation_loader.load_local_schematisation():
+            self.plugin_dock.update_schematisation_view()
