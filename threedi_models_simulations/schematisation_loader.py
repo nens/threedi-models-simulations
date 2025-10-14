@@ -4,17 +4,16 @@ from qgis.PyQt.QtCore import QSettings
 
 from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.utils import get_schematisation_editor_instance
+from threedi_models_simulations.widgets.schematisation_download_dialog import (
+    SchematisationDownloadDialog,
+)
 
 # from threedi_models_simulations.widgets.login import LogInDialog
 # from ..utils import NestedObject
 # from ..widgets.new_schematisation_wizard import NewSchematisationWizard
-# from ..widgets.schematisation_download import SchematisationDownload
-# from ..widgets.schematisation_load_local import SchematisationLoadDialog
 from threedi_models_simulations.widgets.schematisation_load_dialog import (
     SchematisationLoadDialog,
 )
-
-# from .log_in import api_client_required
 
 
 class SchematisationLoaderActions(Enum):
@@ -80,22 +79,33 @@ class SchematisationLoader:
         return None
 
     # # @api_client_required  # TODO
-    # def download_schematisation(self):
-    #     """Download an existing schematisation."""
-    #     schematisation_download = SchematisationDownload(self.plugin_dock)
-    #     schematisation_download.exec_()
-    #     downloaded_local_schematisation = schematisation_download.downloaded_local_schematisation
-    #     custom_geopackage_filepath = schematisation_download.downloaded_geopackage_filepath
-    #     if downloaded_local_schematisation is not None:
-    #         self.load_local_schematisation(
-    #             local_schematisation=downloaded_local_schematisation,
-    #             action=SchematisationLoaderActions.DOWNLOADED,
-    #             custom_geopackage_filepath=custom_geopackage_filepath,
-    #         )
-    #         wip_revision = downloaded_local_schematisation.wip_revision
-    #         if wip_revision is not None:
-    #             settings = QSettings("3di", "qgisplugin")
-    #             settings.setValue("last_used_geopackage_path", wip_revision.schematisation_dir)
+    def download_schematisation(self, threedi_api, organisations):
+        """Download an existing schematisation. Returns the local schematisation"""
+        work_dir = QSettings().value("threedi/working_dir", "")
+        schematisation_download = SchematisationDownloadDialog(
+            work_dir, threedi_api, organisations, self.parent
+        )
+        schematisation_download.exec()
+        downloaded_local_schematisation = (
+            schematisation_download.downloaded_local_schematisation
+        )
+        custom_geopackage_filepath = (
+            schematisation_download.downloaded_geopackage_filepath
+        )
+        if downloaded_local_schematisation is not None:
+            local_schematisation = self.load_local_schematisation(
+                local_schematisation=downloaded_local_schematisation,
+                action=SchematisationLoaderActions.DOWNLOADED,
+                custom_geopackage_filepath=custom_geopackage_filepath,
+            )
+            wip_revision = downloaded_local_schematisation.wip_revision
+            if wip_revision is not None:
+                settings = QSettings("3di", "qgisplugin")
+                settings.setValue(
+                    "last_used_geopackage_path", wip_revision.schematisation_dir
+                )
+            return local_schematisation
+        return None
 
     # # @api_client_required  # TODO
     # def load_remote_schematisation(self, schematisation, revision, progress_bar = None):

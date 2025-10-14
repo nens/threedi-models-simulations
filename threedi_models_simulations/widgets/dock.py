@@ -1,13 +1,40 @@
+import functools
 from pathlib import Path
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
+from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.schematisation_loader import (
     SchematisationLoader,
     SchematisationLoaderActions,
 )
 from threedi_models_simulations.widgets.login import LogInDialog
+
+
+def login_required(func):
+    """Decorator for enforcing authentication"""
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.threedi_api is None:
+            UICommunication.bar_info(
+                "Action reserved for logged in users. Logging-in..."
+            )
+            log_in_dialog = LogInDialog(self)
+            if log_in_dialog.exec() == QDialog.DialogCode.Accepted:
+                self.threedi_api = log_in_dialog.get_api()
+                self.current_user_info = log_in_dialog.get_user_info()
+                self.organisations = log_in_dialog.get_organisations()
+                self.initialize_authorized_view()
+            else:
+                UICommunication.bar_warn("Logging-in canceled. Action aborted!")
+                return
+
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
 
 FORM_CLASS, _ = uic.loadUiType(
     Path(__file__).parent / "dock.ui",
@@ -30,6 +57,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.btn_log_in_out.clicked.connect(self.on_log_in_log_out)
         self.btn_load_schematisation.clicked.connect(self.load_local_schematisation)
         self.btn_load_revision.clicked.connect(self.load_local_schematisation)
+        self.btn_download.clicked.connect(self.download_schematisation)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -38,14 +66,10 @@ class DockWidget(QDockWidget, FORM_CLASS):
         else:
             self.on_log_out()
 
+    @login_required
     def on_log_in(self):
-        log_in_dialog = LogInDialog(self)
-        if log_in_dialog.exec() == QDialog.DialogCode.Accepted:
-            self.threedi_api = log_in_dialog.get_api()
-            self.current_user_info = log_in_dialog.get_user_info()
-            self.organisations = log_in_dialog.get_organisations()
-
-            self.initialize_authorized_view()
+        # Login handled in decorator
+        pass
 
     def on_log_out(self):
         # if self.simulations_progresses_thread is not None:
@@ -91,6 +115,15 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.current_local_schematisation = (
             self.schematisation_loader.load_local_schematisation(
                 local_schematisation, action, custom_geopackage_filepath
+            )
+        )
+        self.update_schematisation_view()
+
+    @login_required
+    def download_schematisation(self, *args, **kwargs):
+        self.current_local_schematisation = (
+            self.schematisation_loader.download_schematisation(
+                self.threedi_api, self.organisations
             )
         )
         self.update_schematisation_view()
