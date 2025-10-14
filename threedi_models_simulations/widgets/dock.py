@@ -10,6 +10,9 @@ from threedi_models_simulations.schematisation_loader import (
     SchematisationLoaderActions,
 )
 from threedi_models_simulations.widgets.login import LogInDialog
+from threedi_models_simulations.widgets.schematisation_upload_dialog import (
+    SchematisationUploadDialog,
+)
 
 
 def login_required(func):
@@ -58,6 +61,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.btn_load_schematisation.clicked.connect(self.load_local_schematisation)
         self.btn_load_revision.clicked.connect(self.load_local_schematisation)
         self.btn_download.clicked.connect(self.download_schematisation)
+        self.btn_upload.clicked.connect(self.upload_schematisation)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -127,6 +131,20 @@ class DockWidget(QDockWidget, FORM_CLASS):
             )
         )
         self.update_schematisation_view()
+
+    @login_required
+    def upload_schematisation(self, *args, **kwargs):
+        # if self.upload_dlg is None:
+        upload_dlg = SchematisationUploadDialog(
+            self.threedi_api,
+            self.current_local_schematisation,
+            self.organisations,
+            self,
+        )
+        result = upload_dlg.exec()
+        # self.upload_dlg.show()
+        # self.upload_dlg.raise_()
+        # self.upload_dlg.activateWindow()
 
     def update_schematisation_view(self):
         """Method for updating loaded schematisation labels."""

@@ -34,8 +34,9 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_schematisation_revision_3di_models,
     fetch_schematisation_revisions_with_count,
     fetch_schematisations_with_count,
+    get_download_file,
 )
-from threedi_models_simulations.utils import get_download_file, unzip_archive
+from threedi_models_simulations.utils import unzip_archive
 
 
 class SchematisationDownloadDialog(QDialog):

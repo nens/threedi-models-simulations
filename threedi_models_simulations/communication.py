@@ -1,8 +1,13 @@
+from enum import Enum
+
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QBrush, QColor, QStandardItem
 from qgis.PyQt.QtWidgets import QMessageBox, QPushButton
 from qgis.utils import iface
+
+# TODO: system overview (add logging to self.lv_log), ListViewLogger
+# Static might not be the best solution
 
 
 class UICommunication(object):
@@ -62,5 +67,23 @@ class UICommunication(object):
     def bar_info(msg, context="plugin", dur=5):
         if iface is not None:
             iface.messageBar().pushMessage(context, msg, level=Qgis.Info, duration=dur)
+        else:
+            print(msg)
+
+    @staticmethod
+    def bar_warn(msg, context="plugin", dur=5):
+        if iface is not None:
+            iface.messageBar().pushMessage(
+                context, msg, level=Qgis.Warning, duration=dur
+            )
+        else:
+            print(msg)
+
+    @staticmethod
+    def bar_error(msg, context="plugin", dur=5):
+        if iface is not None:
+            iface.message_bar().pushMessage(
+                context, msg, level=Qgis.Critical, duration=dur
+            )
         else:
             print(msg)
