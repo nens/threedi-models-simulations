@@ -1,6 +1,7 @@
 from collections import defaultdict
 from operator import attrgetter
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QSettings, QSize
 from qgis.PyQt.QtWidgets import QSizePolicy, QWizard
 from threedi_api_client.openapi import SchematisationRevision
@@ -54,15 +55,15 @@ class SchematisationUploadWizard(QWizard):
         self.addPage(
             CheckModelPage(current_local_schematisation, schematisation_filepath, self)
         )
-        self.addPage(
-            SelectFilesPage(
-                schematisation,
-                schematisation_filepath,
-                self.latest_revision,
-                threedi_api,
-                self,
-            )
+        self.select_files_page = SelectFilesPage(
+            schematisation,
+            schematisation_filepath,
+            self.latest_revision,
+            threedi_api,
+            self,
         )
+
+        self.addPage(self.select_files_page)
 
         self.setButtonText(QWizard.FinishButton, "Start upload")
         finish_btn = self.button(QWizard.FinishButton)
@@ -80,19 +81,17 @@ class SchematisationUploadWizard(QWizard):
         self.new_upload.clear()
         self.new_upload["schematisation"] = self.schematisation
         self.new_upload["latest_revision"] = self.latest_revision
-        self.new_upload["selected_files"] = (
-            self.select_files_page.main_widget.detected_files
-        )
-        self.new_upload["commit_message"] = (
-            self.select_files_page.main_widget.te_upload_description.toPlainText()
-        )
+        # Complex values, such as these dicts,
+        self.new_upload["selected_files"] = self.select_files_page.get_selected_files()
+
+        # These values are registered in the WizardPage
+        self.new_upload["commit_message"] = self.field("commit_message")
         self.new_upload["create_revision"] = True
-        self.new_upload["make_3di_model"] = (
-            self.select_files_page.main_widget.cb_make_3di_model.isChecked()
-        )
-        self.new_upload["cb_inherit_templates"] = (
-            self.select_files_page.main_widget.cb_inherit_templates.isChecked()
-        )
+        self.new_upload["make_3di_model"] = self.field("make_3di_model")
+        # TODO: rename this later (also in UploadWorker)
+        self.new_upload["cb_inherit_templates"] = self.field("inherit_templates")
+
+        QgsMessageLog.logMessage(str(self.new_upload), level=Qgis.Critical)
 
     def cancel_wizard(self):
         """Handling canceling wizard action."""

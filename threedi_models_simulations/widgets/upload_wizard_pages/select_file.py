@@ -54,14 +54,20 @@ class SelectFilesPage(QWizardPage):
         layout.addWidget(self.main_widget, 0, 0)
         self.setLayout(layout)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        commit_msg_te = self.main_widget.te_upload_description
-        self.registerField(
-            "commit_msg*",
-            commit_msg_te,
-            property="plainText",
-            changedSignal=commit_msg_te.textChanged,
-        )
         self.adjustSize()
+
+        # Register these fields so we can retrieve them in the wizard
+        self.registerField(
+            "commit_message*",
+            self.main_widget.te_upload_description,
+            "plainText",
+            self.main_widget.te_upload_description.textChanged,
+        )
+        self.registerField("make_3di_model", self.main_widget.cb_make_3di_model)
+        self.registerField("inherit_templates", self.main_widget.cb_inherit_templates)
+
+    def get_selected_files(self):
+        return self.main_widget.detected_files
 
 
 class SelectFilesWidget(QWidget):
@@ -147,6 +153,7 @@ class SelectFilesWidget(QWidget):
         self.cb_make_3di_model.stateChanged.connect(self.toggle_make_3di_model)
         self.detected_files = self.check_files_states()
         self.widgets_per_file = {}
+
         self.initialize_widgets()
 
     def add_section(self, layout, title, row):
@@ -158,6 +165,7 @@ class SelectFilesWidget(QWidget):
         layout.addWidget(widget, row, 0)
         return widget
 
+    # TODO: are all these properties necessary?
     @property
     def general_files(self):
         """Files mapping for the General group widget."""
