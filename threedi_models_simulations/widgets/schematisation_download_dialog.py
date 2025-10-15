@@ -28,9 +28,9 @@ from threedi_models_simulations.threedi_api_utils import (
     download_schematisation_revision_raster,
     download_schematisation_revision_sqlite,
     extract_error_message,
-    fetch_3di_model_geopackage_download,
-    fetch_3di_model_gridadmin_download,
-    fetch_schematisation_revision_3di_models,
+    fetch_model_geopackage_download,
+    fetch_model_gridadmin_download,
+    fetch_schematisation_revision_models,
     fetch_schematisation_revisions_with_count,
     fetch_schematisations_with_count,
     get_download_file,
@@ -468,7 +468,7 @@ class SchematisationDownloadDialog(QDialog):
             sqlite_download = download_schematisation_revision_sqlite(
                 self.threedi_api, schematisation_pk, revision_pk
             )
-            revision_models = fetch_schematisation_revision_3di_models(
+            revision_models = fetch_schematisation_revision_models(
                 self.threedi_api, schematisation_pk, revision_pk
             )
             rasters_downloads = []
@@ -489,14 +489,12 @@ class SchematisationDownloadDialog(QDialog):
                 revision_models, key=attrgetter("id"), reverse=True
             ):
                 try:
-                    gridadmin_file, gridadmin_download = (
-                        fetch_3di_model_gridadmin_download(
-                            self.threedi_api, revision_model.id
-                        )
+                    gridadmin_file, gridadmin_download = fetch_model_gridadmin_download(
+                        self.threedi_api, revision_model.id
                     )
                     if gridadmin_download is not None:
                         gridadmin_file_gpkg, gridadmin_download_gpkg = (
-                            fetch_3di_model_geopackage_download(
+                            fetch_model_geopackage_download(
                                 self.threedi_api, revision_model.id
                             )
                         )

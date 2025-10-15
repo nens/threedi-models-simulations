@@ -288,7 +288,7 @@ def get_download_file(download, file_path):
                 f.write(chunk)
 
 
-def fetch_schematisation_revision_3di_models(
+def fetch_schematisation_revision_models(
     threedi_api, schematisation_pk: int, revision_pk: int
 ) -> List[ThreediModel]:
     """Fetch 3Di models belonging to the particular schematisation revision."""
@@ -315,7 +315,7 @@ def download_schematisation_revision_raster(
     )
 
 
-def fetch_3di_model_gridadmin_download(
+def fetch_model_gridadmin_download(
     threedi_api, threedimodel_id: int
 ) -> Tuple[ResultFile, Download]:
     """Fetch simulation model gridadmin file."""
@@ -324,7 +324,7 @@ def fetch_3di_model_gridadmin_download(
     return result_file, download
 
 
-def fetch_3di_model_geopackage_download(
+def fetch_model_geopackage_download(
     threedi_api, threedimodel_id: int
 ) -> Tuple[ResultFile, Download]:
     """Fetch simulation model gridadmin file in GeoPackage format."""
@@ -429,7 +429,7 @@ def fetch_schematisation_revision_task(
     )
 
 
-def create_schematisation_revision_3di_model(
+def create_schematisation_revision_model(
     threedi_api,
     schematisation_pk: int,
     revision_pk: int,
@@ -453,13 +453,57 @@ def commit_schematisation_revision(
     )
 
 
-def fetch_3di_model_tasks(threedi_api, threedimodel_id: str) -> List[ThreediModelTask]:
+def fetch_model_tasks(threedi_api, threedimodel_id: str) -> List[ThreediModelTask]:
     """Fetch 3Di model tasks list."""
     return paginated_fetch(threedi_api.threedimodels_tasks_list, threedimodel_id)
 
 
-def fetch_3di_model(threedi_api, threedimodel_id: int) -> ThreediModel:
+def fetch_model(threedi_api, threedimodel_id: int) -> ThreediModel:
     return threedi_api.threedimodels_read(threedimodel_id)
+
+
+def delete_model(threedi_api, threedimodel_id: int) -> None:
+    """Delete 3Di model with a given id."""
+    threedi_api.threedimodels_delete(threedimodel_id)
+
+
+def fetch_models_with_count(
+    threedi_api,
+    limit: int = None,
+    offset: int = None,
+    name_contains: str = None,
+    schematisation_name: str = None,
+    schematisation_owner: str = None,
+    show_valid_and_invalid: bool = False,
+) -> Tuple[List[ThreediModel], int]:
+    """Fetch 3Di models available for current user."""
+    params = {
+        "revision__schematisation__isnull": False,
+        "is_valid": True,
+        "disabled": False,
+    }
+    if limit is not None:
+        params["limit"] = limit
+    if offset is not None:
+        params["offset"] = offset
+    if name_contains is not None:
+        params["name__icontains"] = name_contains.lower()
+    if schematisation_name is not None:
+        params["revision__schematisation__name"] = schematisation_name
+    if schematisation_owner is not None:
+        params["revision__schematisation__owner__unique_id"] = schematisation_owner
+    if show_valid_and_invalid:
+        params["is_valid"] = ""
+
+    response = threedi_api.threedimodels_list(**params)
+    models_list = response.results
+    models_count = response.count
+    return models_list, models_count
+
+
+def fetch_contracts(threedi_api, **data) -> List[Contract]:
+    """Get valid 3Di contracts list."""
+    return paginated_fetch(threedi_api.contracts_list, **data)
 
 
 class SchematisationApiMapper:

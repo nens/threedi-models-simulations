@@ -14,12 +14,12 @@ from threedi_models_simulations.threedi_api_utils import (
     UploadFileStatus,
     commit_schematisation_revision,
     create_schematisation_revision,
-    create_schematisation_revision_3di_model,
+    create_schematisation_revision_model,
     create_schematisation_revision_raster,
     delete_schematisation_revision_raster,
     delete_schematisation_revision_sqlite,
-    fetch_3di_model,
-    fetch_3di_model_tasks,
+    fetch_model,
+    fetch_model_tasks,
     fetch_schematisation_revision,
     fetch_schematisation_revision_task,
     fetch_schematisation_revision_tasks,
@@ -319,7 +319,7 @@ class SchematisationUploadWorker(QRunnable):
                 err = RevisionUploadError(error_msg)
                 raise err
         # Create 3Di model
-        model = create_schematisation_revision_3di_model(
+        model = create_schematisation_revision_model(
             self.threedi_api,
             self.schematisation.id,
             self.revision.id,
@@ -336,7 +336,7 @@ class SchematisationUploadWorker(QRunnable):
         }
         expected_tasks_number = len(finished_tasks)
         while not all(finished_tasks.values()):
-            model_tasks = fetch_3di_model_tasks(self.threedi_api, model_id)
+            model_tasks = fetch_model_tasks(self.threedi_api, model_id)
             for task in model_tasks:
                 task_status = task.status
                 if task_status == ThreediModelTaskStatus.SUCCESS.value:
@@ -344,7 +344,7 @@ class SchematisationUploadWorker(QRunnable):
                 elif task_status == ThreediModelTaskStatus.FAILURE.value:
                     err = RevisionUploadError(task.detail["message"])
                     raise err
-            model = fetch_3di_model(self.threedi_api, model_id)
+            model = fetch_model(self.threedi_api, model_id)
             if getattr(model, "is_valid", False):
                 finished_tasks = {
                     task_name: True for task_name in finished_tasks.keys()

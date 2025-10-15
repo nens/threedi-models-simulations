@@ -23,12 +23,11 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_schematisation_latest_revision,
 )
 from threedi_models_simulations.utils import is_loaded_in_schematisation_editor
+from threedi_models_simulations.widgets.model_delete_dialog import ModelDeletionDialog
 from threedi_models_simulations.widgets.schematisation_upload_wizard import (
     SchematisationUploadWizard,
 )
 from threedi_models_simulations.workers.upload import SchematisationUploadWorker
-
-# from .model_deletion import ModelDeletionDialog
 
 
 class UploadStatus(Enum):
@@ -47,7 +46,6 @@ class UploadManagementSignals(QObject):
 class SchematisationUploadDialog(QDialog):
     """Upload status overview dialog."""
 
-    MAX_SCHEMATISATION_MODELS = 3
     MAX_THREAD_COUNT = 1
 
     def __init__(
@@ -222,6 +220,7 @@ class SchematisationUploadDialog(QDialog):
         self.tv_uploads.selectionModel().setCurrentIndex(
             upload_row_idx, QItemSelectionModel.ClearAndSelect
         )
+
         upload_worker = SchematisationUploadWorker(
             self.threedi_api,
             self.current_local_schematisation,
@@ -303,17 +302,22 @@ class SchematisationUploadDialog(QDialog):
         if not new_upload:
             return
         if new_upload["make_3di_model"]:
-            deletion_dlg = ModelDeletionDialog(self.parent)
+            deletion_dlg = ModelDeletionDialog(
+                self.communication,
+                self.threedi_api,
+                self.current_local_schematisation,
+                self.organisations[self.schematisation.owner],
+                self,
+            )
             if deletion_dlg.threedi_models_to_show:
-                deletion_dlg.exec()
-                if deletion_dlg.threedi_models_to_show:
+                if deletion_dlg.exec() == QDialog.DialogCode.Rejected:
                     self.communication.bar_warn("Uploading canceled...")
                     return
         self.add_upload_to_model(new_upload)
 
     def on_revision_committed(self):
         """Handling actions on successful revision commit."""
-        # TODO
+        # TODO via signal
         # self.plugin_dock.update_schematisation_view()
         pass
 
