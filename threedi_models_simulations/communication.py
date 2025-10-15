@@ -121,7 +121,7 @@ class UICommunication(object):
         log_text_color=QColor(Qt.black),
     ):
         if iface is not None:
-            iface.message_bar().pushMessage(
+            iface.messageBar().pushMessage(
                 context, msg, level=Qgis.Critical, duration=dur
             )
             if self.list_view:

@@ -227,11 +227,11 @@ class SchematisationUploadDialog(QDialog):
             upload_specification,
             upload_row_number,
         )
-        upload_worker.progress.connect(self.on_update_upload_progress)
-        upload_worker.finished.connect(self.on_upload_finished_success)
-        upload_worker.failed.connect(self.on_upload_failed)
-        upload_worker.canceled.connect(self.on_upload_canceled)
-        upload_worker.revision_committed.connect(self.on_revision_committed)
+        upload_worker.signals.progress.connect(self.on_update_upload_progress)
+        upload_worker.signals.finished.connect(self.on_upload_finished_success)
+        upload_worker.signals.failed.connect(self.on_upload_failed)
+        upload_worker.signals.canceled.connect(self.on_upload_canceled)
+        upload_worker.signals.revision_committed.connect(self.on_revision_committed)
         management_signals = UploadManagementSignals()
         management_signals.cancel_upload.connect(upload_worker.stop_upload_tasks)
         self.upload_management_signals[upload_row_number] = management_signals

@@ -33,8 +33,8 @@ class RevisionUploadError(Exception):
     pass
 
 
-class SchematisationUploadWorker(QRunnable):
-    """Worker object responsible for uploading models."""
+class UploadWorkerSignals(QObject):
+    """Separate object for signals as QRunnable is not a QObject."""
 
     finished = pyqtSignal(int, str)
     failed = pyqtSignal(int, str)
@@ -43,6 +43,10 @@ class SchematisationUploadWorker(QRunnable):
     )  # upload row number, task name, task progress, total progress
     canceled = pyqtSignal(int)
     revision_committed = pyqtSignal()
+
+
+class SchematisationUploadWorker(QRunnable):
+    """Worker object responsible for uploading models."""
 
     UPLOAD_CHECK_INTERVAL = 10
     UPLOAD_CHECK_RETRIES = 15
@@ -62,6 +66,7 @@ class SchematisationUploadWorker(QRunnable):
         self.total_progress = 0
         self.schematisation = self.upload_specification["schematisation"]
         self.revision = self.upload_specification["latest_revision"]
+        self.signals = UploadWorkerSignals()
         self.upload_canceled = False
 
     def stop_upload_tasks(self):
@@ -77,13 +82,15 @@ class SchematisationUploadWorker(QRunnable):
             self.current_task_progress = 100
             self.total_progress = 100
             self.report_upload_progress()
-            self.finished.emit(self.upload_row_number, "Nothing to upload or process")
+            self.signals.finished.emit(
+                self.upload_row_number, "Nothing to upload or process"
+            )
             return
         progress_per_task = int(1 / len(tasks_list) * 100)
         try:
             for i, task in enumerate(tasks_list, start=1):
                 if self.upload_canceled:
-                    self.canceled.emit(self.upload_row_number)
+                    self.signals.canceled.emit(self.upload_row_number)
                     return
                 task()
                 self.total_progress = progress_per_task * i
@@ -91,10 +98,10 @@ class SchematisationUploadWorker(QRunnable):
             self.total_progress = 100
             self.report_upload_progress()
             msg = f"Schematisation '{self.schematisation.name}' (revision: {self.revision.number}) files uploaded"
-            self.finished.emit(self.upload_row_number, msg)
+            self.signals.finished.emit(self.upload_row_number, msg)
         except Exception as e:
             error_msg = f"Error: {e}"
-            self.failed.emit(self.upload_row_number, error_msg)
+            self.signals.failed.emit(self.upload_row_number, error_msg)
 
     def build_tasks_list(self):
         """Build upload tasks list."""
@@ -275,7 +282,7 @@ class SchematisationUploadWorker(QRunnable):
         self.current_task_progress = 100
         self.report_upload_progress()
         self.local_schematisation.update_wip_revision(self.revision.number)
-        self.revision_committed.emit()
+        self.signals.revision_committed.emit()
 
     def create_3di_model_task(self, inherit_templates=False):
         """Run creation of the new model out of revision data."""
@@ -356,7 +363,7 @@ class SchematisationUploadWorker(QRunnable):
 
     def report_upload_progress(self):
         """Report upload progress."""
-        self.progress.emit(
+        self.signals.progress.emit(
             self.upload_row_number,
             self.current_task,
             self.current_task_progress,
