@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>392</width>
-    <height>358</height>
+    <width>378</width>
+    <height>400</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -179,6 +179,11 @@
       <property name="title">
        <string>System feedback</string>
       </property>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <widget class="QListView" name="lv_log"/>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>

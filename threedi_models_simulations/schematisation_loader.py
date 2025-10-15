@@ -2,7 +2,6 @@ from enum import Enum
 
 from qgis.PyQt.QtCore import QSettings
 
-from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.utils import get_schematisation_editor_instance
 from threedi_models_simulations.widgets.schematisation_download_dialog import (
     SchematisationDownloadDialog,
@@ -25,8 +24,9 @@ class SchematisationLoaderActions(Enum):
 class SchematisationLoader:
     """Schematisation build options class."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, communication):
         self.parent = parent
+        self.communication = communication
 
     # # @api_client_required  # TODO
     # def new_schematisation(self):
@@ -40,6 +40,7 @@ class SchematisationLoader:
 
     def load_local_schematisation(
         self,
+        communication,
         local_schematisation=None,
         action=SchematisationLoaderActions.LOADED,
         custom_geopackage_filepath=None,
@@ -47,7 +48,9 @@ class SchematisationLoader:
         """Load locally stored schematisation. Returns schematisation"""
         if not local_schematisation:
             work_dir = QSettings().value("threedi/working_dir", "")
-            schematisation_load = SchematisationLoadDialog(work_dir, self.parent)
+            schematisation_load = SchematisationLoadDialog(
+                work_dir, communication, self.parent
+            )
             schematisation_load.exec()
             local_schematisation = schematisation_load.selected_local_schematisation
         if local_schematisation and local_schematisation.schematisation_db_filepath:
@@ -58,32 +61,36 @@ class SchematisationLoader:
                     else custom_geopackage_filepath
                 )
                 msg = f"Schematisation '{local_schematisation.name}' {action.value}!\n"
-                UICommunication.bar_info(msg)
+                self.communication.bar_info(msg)
                 # Load new schematisation
                 schematisation_editor = get_schematisation_editor_instance()
                 if schematisation_editor:
                     title = "Load schematisation"
                     question = "Do you want to load schematisation data from the associated GeoPackage file?"
-                    if UICommunication.ask(None, title, question):
+                    if self.communication.ask(None, title, question):
                         schematisation_editor.load_schematisation(geopackage_filepath)
                 else:
                     msg += (
                         "Please use the 3Di Schematisation Editor to load it to your project from the GeoPackage:"
                         f"\n{geopackage_filepath}"
                     )
-                    UICommunication.show_warn(msg, self.parent, "Schematisation")
+                    self.communication.show_warn(msg, self.parent, "Schematisation")
                 return local_schematisation
             except (TypeError, ValueError):
                 error_msg = "Invalid schematisation directory structure. Loading schematisation canceled."
-                UICommunication.show_error(error_msg, self.parent, "Schematisation")
+                self.communication.show_error(error_msg, self.parent, "Schematisation")
         return None
 
     # # @api_client_required  # TODO
-    def download_schematisation(self, threedi_api, organisations):
+    def download_schematisation(self, threedi_api, organisations, communication):
         """Download an existing schematisation. Returns the local schematisation"""
         work_dir = QSettings().value("threedi/working_dir", "")
         schematisation_download = SchematisationDownloadDialog(
-            work_dir, threedi_api, organisations, self.parent
+            work_dir,
+            threedi_api,
+            organisations,
+            communication,
+            self.parent,
         )
         schematisation_download.exec()
         downloaded_local_schematisation = (
@@ -94,6 +101,7 @@ class SchematisationLoader:
         )
         if downloaded_local_schematisation is not None:
             local_schematisation = self.load_local_schematisation(
+                communication=communication,
                 local_schematisation=downloaded_local_schematisation,
                 action=SchematisationLoaderActions.DOWNLOADED,
                 custom_geopackage_filepath=custom_geopackage_filepath,

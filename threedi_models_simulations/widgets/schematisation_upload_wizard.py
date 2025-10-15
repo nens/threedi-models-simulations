@@ -24,6 +24,7 @@ class SchematisationUploadWizard(QWizard):
         schematisation_filepath,
         threedi_api,
         organisation,
+        communication,
         parent,
     ):
         super().__init__(parent)
@@ -32,6 +33,7 @@ class SchematisationUploadWizard(QWizard):
         self.current_local_schematisation = current_local_schematisation
         self.schematisation = schematisation
         self.schematisation_filepath = schematisation_filepath
+        self.communication = communication
 
         self.available_revisions = fetch_schematisation_revisions(
             threedi_api, self.schematisation.id
@@ -53,7 +55,12 @@ class SchematisationUploadWizard(QWizard):
             )
         )
         self.addPage(
-            CheckModelPage(current_local_schematisation, schematisation_filepath, self)
+            CheckModelPage(
+                current_local_schematisation,
+                schematisation_filepath,
+                self.communication,
+                self,
+            )
         )
         self.select_files_page = SelectFilesPage(
             schematisation,

@@ -21,7 +21,7 @@ def login_required(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.threedi_api is None:
-            UICommunication.bar_info(
+            self.communication.bar_info(
                 "Action reserved for logged in users. Logging-in..."
             )
             log_in_dialog = LogInDialog(self)
@@ -31,7 +31,7 @@ def login_required(func):
                 self.organisations = log_in_dialog.get_organisations()
                 self.initialize_authorized_view()
             else:
-                UICommunication.bar_warn("Logging-in canceled. Action aborted!")
+                self.communication.bar_warn("Logging-in canceled. Action aborted!")
                 return
 
         return func(self, *args, **kwargs)
@@ -53,8 +53,8 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.threedi_api = None
         self.current_user_info = None
         self.organisations = {}
-        self.schematisation_loader = SchematisationLoader(self)
-
+        self.communication = UICommunication(self.lv_log)
+        self.schematisation_loader = SchematisationLoader(self, self.communication)
         self.current_local_schematisation = None
 
         self.btn_log_in_out.clicked.connect(self.on_log_in_log_out)
@@ -118,7 +118,10 @@ class DockWidget(QDockWidget, FORM_CLASS):
         # This function can also be called externally on the plugin instance
         self.current_local_schematisation = (
             self.schematisation_loader.load_local_schematisation(
-                local_schematisation, action, custom_geopackage_filepath
+                self.communication,
+                local_schematisation,
+                action,
+                custom_geopackage_filepath,
             )
         )
         self.update_schematisation_view()
@@ -127,7 +130,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
     def download_schematisation(self, *args, **kwargs):
         self.current_local_schematisation = (
             self.schematisation_loader.download_schematisation(
-                self.threedi_api, self.organisations
+                self.threedi_api, self.organisations, self.communication
             )
         )
         self.update_schematisation_view()
@@ -139,6 +142,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
             self.threedi_api,
             self.current_local_schematisation,
             self.organisations,
+            self.communication,
             self,
         )
         result = upload_dlg.exec()

@@ -7,6 +7,7 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QFrame,
     QGridLayout,
+    QGroupBox,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
@@ -93,8 +94,10 @@ class SelectFilesWidget(QWidget):
         self.svg_lout = QVBoxLayout()
         self.gridLayout.addLayout(self.svg_lout, 0, 0, 1, 2)
 
-        self.label = QLabel("SELECT FILES")
-        self.gridLayout.addWidget(self.label, 1, 0)
+        file_group = QGroupBox("Select files", self)
+        self.gridLayout.addWidget(file_group, 1, 0)
+        file_group_layout = QGridLayout(self)
+        file_group.setLayout(file_group_layout)
 
         self.scrollArea = QScrollArea()
         self.scrollArea.setFrameShape(QFrame.StyledPanel)
@@ -118,9 +121,9 @@ class SelectFilesWidget(QWidget):
             self.gridLayout_3, "Vegetation drag", 5
         )
 
-        self.gridLayout.addWidget(self.scrollArea, 2, 0)
+        file_group_layout.addWidget(self.scrollArea)
 
-        self.gridLayout.addWidget(QLabel("DESCRIBE THE CHANGES YOU UPLOAD:"), 3, 0)
+        self.gridLayout.addWidget(QLabel("Describe the changes you upload:"), 3, 0)
 
         # Description text area
         self.te_upload_description = QPlainTextEdit()
@@ -164,48 +167,6 @@ class SelectFilesWidget(QWidget):
         widget_layout.addWidget(label, 0, 0)
         layout.addWidget(widget, row, 0)
         return widget
-
-    # TODO: are all these properties necessary?
-    @property
-    def general_files(self):
-        """Files mapping for the General group widget."""
-        files_info = OrderedDict((("geopackage", "GeoPackage"),))
-        return files_info
-
-    @property
-    def terrain_model_files(self):
-        """Files mapping for the Terrain Model group widget."""
-        return SchematisationApiMapper.model_settings_rasters()
-
-    @property
-    def simple_infiltration_files(self):
-        """Files mapping for the Infiltration group widget."""
-        return SchematisationApiMapper.simple_infiltration_rasters()
-
-    @property
-    def groundwater_files(self):
-        """Files mapping for the Groundwater group widget."""
-        return SchematisationApiMapper.groundwater_rasters()
-
-    @property
-    def interflow_files(self):
-        """Files mapping for the Interflow group widget."""
-        return SchematisationApiMapper.interflow_rasters()
-
-    @property
-    def vegetation_drag_files(self):
-        """Files mapping for the Vegetation drag settings group widget."""
-        return SchematisationApiMapper.vegetation_drag_rasters()
-
-    @property
-    def files_reference_tables(self):
-        """GeoPackage tables mapping with references to the files."""
-        return SchematisationApiMapper.raster_reference_tables()
-
-    @property
-    def file_table_mapping(self):
-        """Files to geopackage tables mapping."""
-        return SchematisationApiMapper.raster_table_mapping()
 
     def toggle_make_3di_model(self):
         """Handle Make 3Di model checkbox state changes."""
@@ -262,7 +223,10 @@ class SelectFilesWidget(QWidget):
             "make_action": True,
         }
 
-        for table_name, files_fields in self.files_reference_tables.items():
+        for (
+            table_name,
+            files_fields,
+        ) in SchematisationApiMapper.raster_reference_tables().items():
             table_lyr = geopackage_layer(self.schematisation_filepath, table_name)
             try:
                 first_feat = next(table_lyr.getFeatures())
@@ -319,12 +283,12 @@ class SelectFilesWidget(QWidget):
             self.widget_vegetation_drag,
         ]
         files_info_collection = [
-            self.general_files,
-            self.terrain_model_files,
-            self.simple_infiltration_files,
-            self.groundwater_files,
-            self.interflow_files,
-            self.vegetation_drag_files,
+            OrderedDict((("geopackage", "GeoPackage"),)),
+            SchematisationApiMapper.model_settings_rasters(),
+            SchematisationApiMapper.simple_infiltration_rasters(),
+            SchematisationApiMapper.groundwater_rasters(),
+            SchematisationApiMapper.interflow_rasters(),
+            SchematisationApiMapper.vegetation_drag_rasters(),
         ]
         for widget in files_widgets:
             widget.hide()
@@ -463,7 +427,7 @@ class SelectFilesWidget(QWidget):
             new_file_name = ""
             target_filepath = None
             filepath_exists = False
-        reference_table = self.file_table_mapping[raster_type]
+        reference_table = SchematisationApiMapper.raster_table_mapping()[raster_type]
         table_lyr = geopackage_layer(self.schematisation_filepath, reference_table)
         first_feat = next(table_lyr.getFeatures())
         field_idx = table_lyr.fields().lookupField(raster_type)

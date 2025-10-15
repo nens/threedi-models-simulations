@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QWizardPage,
 )
 
-from threedi_models_simulations.communication import UICommunication
+from threedi_models_simulations.communication import progress_bar_callback_factory
 from threedi_models_simulations.logging import LogLevels, TreeViewLogger
 from threedi_models_simulations.utils import (
     geopackage_layer,
@@ -28,13 +28,20 @@ from threedi_models_simulations.utils import (
 
 
 class CheckModelPage(QWizardPage):
-    """Upload Check Model definition page."""
-
-    def __init__(self, current_local_schematisation, schematisation_filepath, parent):
+    def __init__(
+        self,
+        current_local_schematisation,
+        schematisation_filepath,
+        communication,
+        parent,
+    ):
         super().__init__(parent)
         self.parent_wizard = parent
         self.main_widget = CheckModelWidget(
-            self, current_local_schematisation, schematisation_filepath
+            self,
+            current_local_schematisation,
+            schematisation_filepath,
+            communication,
         )
         layout = QGridLayout()
         layout.addWidget(self.main_widget, 0, 0)
@@ -57,7 +64,13 @@ class CheckModelWidget(QWidget):
 
     CHECKS_PER_CODE_LIMIT = 100
 
-    def __init__(self, parent, current_local_schematisation, schematisation_filepath):
+    def __init__(
+        self,
+        parent,
+        current_local_schematisation,
+        schematisation_filepath,
+        communication,
+    ):
         super().__init__(parent)
 
         self.setWindowTitle("Check schematisation")
@@ -65,19 +78,16 @@ class CheckModelWidget(QWidget):
 
         gridLayout = QGridLayout(self)
 
-        # GroupBox: Schematisation Check Status
         groupBox = QGroupBox("Schematisation Check Status", self)
         gridLayout_3 = QGridLayout(groupBox)
         gridLayout_4 = QGridLayout()
         gridLayout_4.addWidget(QLabel("GeoPackage", groupBox), 0, 0)
 
-        # GeoPackage ProgressBar
         self.pbar_check_schematisation = QProgressBar(groupBox)
         self.pbar_check_schematisation.setMinimumSize(0, 25)
         self.pbar_check_schematisation.setValue(0)
         gridLayout_4.addWidget(self.pbar_check_schematisation, 0, 1)
 
-        # GeoPackage Status Label
         self.lbl_check_schematisation = QLabel(groupBox)
         self.lbl_check_schematisation.setMinimumSize(0, 25)
         self.lbl_check_schematisation.setText(
@@ -86,7 +96,6 @@ class CheckModelWidget(QWidget):
         self.lbl_check_schematisation.setAlignment(Qt.AlignCenter)
         gridLayout_4.addWidget(self.lbl_check_schematisation, 0, 2)
 
-        # GeoPackage Export Button
         self.btn_export_check_schematisation_results = QToolButton(groupBox)
         self.btn_export_check_schematisation_results.setEnabled(False)
         self.btn_export_check_schematisation_results.setMinimumSize(40, 40)
@@ -157,6 +166,7 @@ class CheckModelWidget(QWidget):
 
         self.current_local_schematisation = current_local_schematisation
         self.schematisation_filepath = schematisation_filepath
+        self.communication = communication
 
         self.schematisation_checker_logger = TreeViewLogger(
             self.tv_schema_check_result, self.SCHEMATISATION_CHECKS_HEADER
@@ -215,7 +225,7 @@ class CheckModelWidget(QWidget):
         self.pbar_check_grid.setValue(0)
         self.check_computational_grid()
         self.btn_export_check_grid_results.setEnabled(True)
-        UICommunication.bar_info("Finished schematisation checks.")
+        self.communication.bar_info("Finished schematisation checks.")
 
     def check_schematisation(self):
         """Run schematisation database checks."""
@@ -233,43 +243,46 @@ class CheckModelWidget(QWidget):
                 "The selected schematisation DB cannot be used, because its database schema version is out of date. "
                 "Would you like to migrate your schematisation database to the current schema version?"
             )
-            do_migration = UICommunication.ask(
+            do_migration = self.communication.ask(
                 None, "Missing migration", warn_and_ask_msg
             )
             if not do_migration:
-                UICommunication.bar_warn("Schematisation checks skipped!")
+                self.communication.bar_warn("Schematisation checks skipped!")
                 return
             wip_revision = self.current_local_schematisation.wip_revision
             QCoreApplication.processEvents()
             migration_info = "Schema migration..."
-            # TODO:
-            # self.communication.progress_bar(migration_info, 0, 100, 0, clear_msg_bar=True)
+            self.communication.progress_bar(
+                migration_info, 0, 100, 0, clear_msg_bar=True
+            )
 
             progress_bar_callback = None
-            # progress_bar_callback = progress_bar_callback_factory(self.communication)
+            progress_bar_callback = progress_bar_callback_factory(self.communication)
             migration_succeed, migration_feedback_msg = migrate_schematisation_schema(
                 wip_revision.schematisation_db_filepath, progress_bar_callback
             )
-            # TODO
-            # self.communication.progress_bar("Migration complete!", 0, 100, 100, clear_msg_bar=True)
+
+            self.communication.progress_bar(
+                "Migration complete!", 0, 100, 100, clear_msg_bar=True
+            )
             QCoreApplication.processEvents()
-            # self.communication.clear_message_bar()
+            self.communication.clear_message_bar()
 
             # Something is wrong here - check this logic!!!
             if migration_succeed and len(migration_feedback_msg) > 0:
-                UICommunication.show_info(migration_feedback_msg, self, "Export")
+                self.communication.show_info(migration_feedback_msg, self, "Export")
                 QgsMessageLog.logMessage(
                     migration_feedback_msg, level=Qgis.Warning, tag="Messages"
                 )
             elif not migration_succeed:
-                UICommunication.show_error(migration_feedback_msg, self)
+                self.communication.show_error(migration_feedback_msg, self)
                 return
             threedi_db = ThreediDatabase(
                 self.schematisation_filepath.rsplit(".", 1)[0] + ".gpkg"
             )
         except Exception as e:
             error_msg = f"{e}"
-            UICommunication.show_error(error_msg, self)
+            self.communication.show_error(error_msg, self)
             return
         try:
             model_checker = ThreediModelChecker(threedi_db)
@@ -280,7 +293,7 @@ class CheckModelWidget(QWidget):
                 f"Something went wrong trying to connect to the database, "
                 f"please check the connection settings: {exc.args[0]}"
             )
-            UICommunication.show_error(error_msg, self)
+            self.communication.show_error(error_msg, self)
             return
 
         session = model_checker.db.get_session()
@@ -375,7 +388,7 @@ class CheckModelWidget(QWidget):
             row = [it.text() for it in row_items]
             checker_results.append(row)
         if not checker_results:
-            UICommunication.show_warn(
+            self.communication.show_warn(
                 "There is nothing to export. Action aborted.", self, "Warning"
             )
             return
@@ -391,6 +404,6 @@ class CheckModelWidget(QWidget):
             csv_writer = csv.writer(csv_file, delimiter=",")
             csv_writer.writerow(header)
             csv_writer.writerows(checker_results)
-        UICommunication.show_info(
+        self.communication.show_info(
             "Schematisation checker results successfully exported!", self, "Export"
         )

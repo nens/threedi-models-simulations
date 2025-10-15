@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from threedi_models_simulations.communication import UICommunication
+from threedi_models_simulations.logging import ListViewLogger
 from threedi_models_simulations.threedi_api_utils import (
     fetch_schematisation,
     fetch_schematisation_latest_revision,
@@ -28,7 +28,6 @@ from threedi_models_simulations.widgets.schematisation_upload_wizard import (
 )
 from threedi_models_simulations.workers.upload import SchematisationUploadWorker
 
-# from ..communication import ListViewLogger
 # from .model_deletion import ModelDeletionDialog
 
 
@@ -52,9 +51,16 @@ class SchematisationUploadDialog(QDialog):
     MAX_THREAD_COUNT = 1
 
     def __init__(
-        self, threedi_api, current_local_schematisation, organisations, parent
+        self,
+        threedi_api,
+        current_local_schematisation,
+        organisations,
+        communication,
+        parent,
     ):
         super().__init__(parent)
+
+        self.communication = communication
 
         self.setWindowTitle("Upload status")
         self.setMinimumSize(750, 600)
@@ -73,6 +79,8 @@ class SchematisationUploadDialog(QDialog):
         self.lv_upload_feedback = QListView()
         self.lv_upload_feedback.setEditTriggers(QListView.NoEditTriggers)
         gridLayout.addWidget(self.lv_upload_feedback, 3, 0, 1, 2)
+
+        self.feedback_logger = ListViewLogger(self.lv_upload_feedback)
 
         pb_hide = QPushButton("Cancel")
         gridLayout.addWidget(pb_hide, 4, 0)
@@ -117,7 +125,6 @@ class SchematisationUploadDialog(QDialog):
         self.current_local_schematisation = current_local_schematisation
         self.organisations = organisations
 
-        # self.feedback_logger = ListViewLogger(self.lv_upload_feedback)
         self.upload_thread_pool = QThreadPool()
         self.upload_thread_pool.setMaxThreadCount(self.MAX_THREAD_COUNT)
         self.ended_tasks = OrderedDict()
@@ -132,7 +139,6 @@ class SchematisationUploadDialog(QDialog):
         pb_cancel_upload.clicked.connect(self.on_cancel_upload)
         self.tv_model = None
         self.setup_view_model()
-        # self.adjustSize()
 
     def setup_view_model(self):
         """Setting up model and columns for TreeView."""
@@ -162,17 +168,17 @@ class SchematisationUploadDialog(QDialog):
                 self.current_upload_row,
                 *self.upload_progresses[self.current_upload_row],
             )
-            # self.feedback_logger.clear()  # TODO
+            self.feedback_logger.clear()
             try:
                 for msg, success in self.ended_tasks[self.current_upload_row]:
                     if success is True:
-                        # self.feedback_logger.log_info(msg)
+                        self.feedback_logger.log_info(msg)
                         pass
                     elif success is False:
-                        # self.feedback_logger.log_error(msg)
+                        self.feedback_logger.log_error(msg)
                         pass
                     else:
-                        # self.feedback_logger.log_warn(msg, log_text_color=Qt.darkGray)
+                        self.feedback_logger.log_warn(msg, log_text_color=Qt.darkGray)
                         pass
             except KeyError:
                 pass
@@ -241,7 +247,7 @@ class SchematisationUploadDialog(QDialog):
             warn_msg = (
                 "Please load the schematisation first before starting the upload."
             )
-            UICommunication.show_warn(warn_msg, self, "Load schematisation")
+            self.communication.show_warn(warn_msg, self, "Load schematisation")
             # TODO
             # self.plugin_dock.build_options.load_local_schematisation()
             return
@@ -257,7 +263,7 @@ class SchematisationUploadDialog(QDialog):
                 "Warning: the GeoPackage that you loaded with the 3Di Schematisation Editor is not in the revision you "
                 "are about to upload. Do you want to continue?"
             )
-            on_continue_answer = UICommunication.ask(
+            on_continue_answer = self.communication.ask(
                 self, title, question, QMessageBox.Warning
             )
             if on_continue_answer is not True:
@@ -277,7 +283,7 @@ class SchematisationUploadDialog(QDialog):
         latest_revision_number = latest_revision.number if latest_revision else 0
         if latest_revision_number != current_wip_revision.number:
             question = f"WIP revision number different than latest online revision ({latest_revision_number})"
-            answer = UICommunication.custom_ask(
+            answer = self.communication.custom_ask(
                 self, "Pick action", question, "Upload anyway?", "Cancel"
             )
             if answer == "Cancel":
@@ -289,6 +295,7 @@ class SchematisationUploadDialog(QDialog):
             self.schematisation_filepath,
             self.threedi_api,
             self.organisations[self.schematisation.owner],
+            self.communication,
             self,
         )
         upload_wizard_dialog.exec_()
@@ -300,7 +307,7 @@ class SchematisationUploadDialog(QDialog):
             if deletion_dlg.threedi_models_to_show:
                 deletion_dlg.exec()
                 if deletion_dlg.threedi_models_to_show:
-                    UICommunication.bar_warn("Uploading canceled...")
+                    self.communication.bar_warn("Uploading canceled...")
                     return
         self.add_upload_to_model(new_upload)
 
@@ -313,7 +320,7 @@ class SchematisationUploadDialog(QDialog):
     def on_cancel_upload(self):
         """Handling of canceling upload tasks."""
         question = "Do you want to cancel revision upload task?"
-        yes = UICommunication.ask(self, "Cancel upload?", question)
+        yes = self.communication.ask(self, "Cancel upload?", question)
         if not yes:
             return
         item = self.tv_model.item(self.current_upload_row - 1, 3)
@@ -331,7 +338,7 @@ class SchematisationUploadDialog(QDialog):
             self.ended_tasks[upload_row_number] = [canceled_task_row]
         else:
             self.ended_tasks[upload_row_number].append(canceled_task_row)
-        # self.feedback_logger.log_warn(cancel_msg, log_text_color=Qt.darkGray)
+        self.feedback_logger.log_warn(cancel_msg, log_text_color=Qt.darkGray)
         self.on_upload_context_change()
 
     def on_update_upload_progress(
@@ -359,20 +366,20 @@ class SchematisationUploadDialog(QDialog):
                         upload_ended_tasks.append(ended_task_row)
                     else:
                         return
-                # self.feedback_logger.log_info(enriched_success_message)
+                self.feedback_logger.log_info(enriched_success_message)
 
     def on_upload_finished_success(self, upload_row_number, msg):
         """Handling action on upload success."""
         item = self.tv_model.item(upload_row_number - 1, 3)
         item.setText(UploadStatus.SUCCESS.value)
-        UICommunication.bar_info(msg, log_text_color=Qt.darkGreen)
+        self.communication.bar_info(msg, log_text_color=Qt.darkGreen)
         self.on_upload_context_change()
 
     def on_upload_failed(self, upload_row_number, error_message):
         """Handling action on upload failure."""
         item = self.tv_model.item(upload_row_number - 1, 3)
         item.setText(UploadStatus.FAILURE.value)
-        UICommunication.bar_error(error_message, log_text_color=Qt.red)
+        self.communication.bar_error(error_message, log_text_color=Qt.red)
         success = False
         failed_task_name = self.upload_progresses[self.current_upload_row][0]
         enriched_error_message = f"{failed_task_name} ==> failed\n{error_message}"
@@ -381,5 +388,5 @@ class SchematisationUploadDialog(QDialog):
             self.ended_tasks[upload_row_number] = [failed_task_row]
         else:
             self.ended_tasks[upload_row_number].append(failed_task_row)
-        # self.feedback_logger.log_error(enriched_error_message)
+        self.feedback_logger.log_error(enriched_error_message)
         self.on_upload_context_change()

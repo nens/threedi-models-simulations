@@ -23,7 +23,6 @@ from qgis.PyQt.QtWidgets import (
 from threedi_api_client.openapi import ApiException
 from threedi_mi_utils import LocalSchematisation, list_local_schematisations
 
-from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.constants import ICONS_DIR
 from threedi_models_simulations.threedi_api_utils import (
     download_schematisation_revision_raster,
@@ -44,7 +43,7 @@ class SchematisationDownloadDialog(QDialog):
 
     TABLE_LIMIT = 10
 
-    def __init__(self, working_dir, threedi_api, organisations, parent):
+    def __init__(self, working_dir, threedi_api, organisations, communication, parent):
         super().__init__(parent)
         self.setWindowTitle("Download schematisation")
         self.resize(900, 650)
@@ -138,6 +137,7 @@ class SchematisationDownloadDialog(QDialog):
         self.working_dir = working_dir
         self.threedi_api = threedi_api
         self.organisations = organisations
+        self.communication = communication
 
         self.schematisations = None
         self.revisions = None
@@ -283,11 +283,11 @@ class SchematisationDownloadDialog(QDialog):
         except ApiException as e:
             self.close()
             error_msg = extract_error_message(e)
-            UICommunication.show_error(error_msg, self.parent, "Error")
+            self.communication.show_error(error_msg, self.parent, "Error")
         except Exception as e:
             self.close()
             error_msg = f"Error: {e}"
-            UICommunication.show_error(error_msg, self.parent, "Error")
+            self.communication.show_error(error_msg, self.parent, "Error")
 
     def fetch_revisions(self):
         """Fetching schematisation revisions list."""
@@ -338,9 +338,9 @@ class SchematisationDownloadDialog(QDialog):
             self.revisions = revisions
         except ApiException as e:
             error_msg = extract_error_message(e)
-            UICommunication.show_error(error_msg)
+            self.communication.show_error(error_msg)
         except Exception as e:
-            UICommunication.show_error(f"Error: {e}")
+            self.communication.show_error(f"Error: {e}")
 
     def get_selected_schematisation(self):
         """Get currently selected schematisation."""
@@ -411,7 +411,7 @@ class SchematisationDownloadDialog(QDialog):
                 question = (
                     f"Replace local WIP or store as a revision {revision_number}?"
                 )
-                picked_action_name = UICommunication.custom_ask(
+                picked_action_name = self.communication.custom_ask(
                     self, title, question, replace, store, cancel
                 )
                 if picked_action_name == replace:
@@ -562,12 +562,12 @@ class SchematisationDownloadDialog(QDialog):
                 "threedi/last_schematisation_folder", schematisation_db_dir
             )
             msg = f"Schematisation '{schematisation_name} (revision {revision_number})' downloaded!"
-            UICommunication.bar_info(msg)
+            self.communication.bar_info(msg)
         except ApiException as e:
             error_msg = extract_error_message(e)
-            UICommunication.show_error(error_msg)
+            self.communication.show_error(error_msg)
         except Exception as e:
-            UICommunication.show_error(f"Error: {e}")
+            self.communication.show_error(f"Error: {e}")
 
     def cancel_download_schematisation_revision(self):
         self.close()

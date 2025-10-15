@@ -1,16 +1,32 @@
-from enum import Enum
-
 from qgis.core import Qgis
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QBrush, QColor, QStandardItem
-from qgis.PyQt.QtWidgets import QMessageBox, QPushButton
+from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.PyQt.QtGui import QBrush, QColor, QStandardItem, QStandardItemModel
+from qgis.PyQt.QtWidgets import QMessageBox, QProgressBar, QPushButton
 from qgis.utils import iface
 
-# TODO: system overview (add logging to self.lv_log), ListViewLogger
-# Static might not be the best solution
+
+def progress_bar_callback_factory(
+    communication, minimum=0, maximum=100, clear_msg_bar=True
+):
+    """Callback function to track progress."""
+
+    def progress_bar_callback(progres_value, message):
+        communication.progress_bar(
+            message, minimum, maximum, progres_value, clear_msg_bar=clear_msg_bar
+        )
+        QCoreApplication.processEvents()
+
+    return progress_bar_callback
 
 
 class UICommunication(object):
+    def __init__(self, list_view=None):
+        self.list_view = list_view
+        # Automatically add bar_info/warn/error messages to a listview
+        if self.list_view:
+            self.model = QStandardItemModel()
+            self.list_view.setModel(self.model)
+
     @staticmethod
     def custom_ask(parent, title, question, *buttons_labels):
         """Ask for custom operation confirmation."""
@@ -63,27 +79,78 @@ class UICommunication(object):
         else:
             print(msg)
 
-    @staticmethod
-    def bar_info(msg, context="plugin", dur=5):
+    def bar_info(
+        self,
+        msg,
+        context="3Di Models and Simulations",
+        dur=5,
+        log_text_color=QColor(Qt.black),
+    ):
         if iface is not None:
             iface.messageBar().pushMessage(context, msg, level=Qgis.Info, duration=dur)
+            if self.list_view:
+                item = QStandardItem(msg)
+                item.setForeground(QBrush(log_text_color))
+                self.model.appendRow([item])
         else:
             print(msg)
 
-    @staticmethod
-    def bar_warn(msg, context="plugin", dur=5):
+    def bar_warn(
+        self,
+        msg,
+        context="3Di Models and Simulations",
+        dur=5,
+        log_text_color=QColor(Qt.black),
+    ):
         if iface is not None:
             iface.messageBar().pushMessage(
                 context, msg, level=Qgis.Warning, duration=dur
             )
+            if self.list_view:
+                item = QStandardItem(msg)
+                item.setForeground(QBrush(log_text_color))
+                self.model.appendRow([item])
         else:
             print(msg)
 
-    @staticmethod
-    def bar_error(msg, context="plugin", dur=5):
+    def bar_error(
+        self,
+        msg,
+        context="3Di Models and Simulations",
+        dur=5,
+        log_text_color=QColor(Qt.black),
+    ):
         if iface is not None:
             iface.message_bar().pushMessage(
                 context, msg, level=Qgis.Critical, duration=dur
             )
+            if self.list_view:
+                item = QStandardItem(msg)
+                item.setForeground(QBrush(log_text_color))
+                self.model.appendRow([item])
         else:
             print(msg)
+
+    def clear_message_bar(self):
+        """Clearing message bar."""
+        if iface is None:
+            return
+        iface.messageBar().clearWidgets()
+
+    def progress_bar(
+        self, msg, minimum=0, maximum=0, init_value=0, clear_msg_bar=False
+    ):
+        """Setting progress bar."""
+        if iface is None:
+            return None
+        if clear_msg_bar:
+            iface.messageBar().clearWidgets()
+        pmb = iface.messageBar().createMessage(msg)
+        pb = QProgressBar()
+        pb.setMinimum(int(minimum))
+        pb.setMaximum(int(maximum))
+        pb.setValue(int(init_value))
+        pb.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        pmb.layout().addWidget(pb)
+        iface.messageBar().pushWidget(pmb, Qgis.Info)
+        return pb

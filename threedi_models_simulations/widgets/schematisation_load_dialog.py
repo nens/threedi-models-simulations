@@ -16,15 +16,14 @@ from threedi_mi_utils import (
     replace_revision_data,
 )
 
-from threedi_models_simulations.communication import UICommunication
-
 
 class SchematisationLoadDialog(QDialog):
     """Dialog for local schematisation loading."""
 
-    def __init__(self, working_dir, parent=None):
+    def __init__(self, working_dir, communication, parent=None):
         super().__init__(parent)
         self.working_dir = working_dir
+        self.communication = communication
 
         self.setWindowTitle("Load local schematisation")
 
@@ -166,7 +165,7 @@ class SchematisationLoadDialog(QDialog):
             question = (
                 f"Replace WIP with data from the revision {local_revision.number}?"
             )
-            picked_action_name = UICommunication.custom_ask(
+            picked_action_name = self.communication.custom_ask(
                 self, title, question, "Replace", "Cancel"
             )
             if picked_action_name == "Replace":
