@@ -62,6 +62,9 @@ class ModelsSimulationsPlugin:
 
     def show_settings(self):
         dialog = SettingsDialog(self.dockwidget)
+        # logout when settings changed
+        dialog.settings_changed.connect(self.dockwidget.on_log_out)
+
         dialog.exec()
         if not settings_are_valid():
             QMessageBox.warning(
@@ -70,8 +73,6 @@ class ModelsSimulationsPlugin:
                 "The current settings are not valid, unable to start the M&S plugin",
             )
             return
-        # TODO: logout when settings changed
-        # self.plugin_settings.settings_changed.connect(dock.on_log_out)
 
     def run(self):
         if not settings_are_valid():
