@@ -66,6 +66,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.btn_load_revision.clicked.connect(self.load_local_schematisation)
         self.btn_download.clicked.connect(self.download_schematisation)
         self.btn_upload.clicked.connect(self.upload_schematisation)
+        self.btn_new.clicked.connect(self.new_schematisation)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -138,6 +139,12 @@ class DockWidget(QDockWidget, FORM_CLASS):
             )
         )
         self.update_schematisation_view()
+
+    @login_required
+    def new_schematisation(self, *args, **kwargs):
+        self.schematisation_loader.new_schematisation(
+            self.threedi_api, self.organisations
+        )
 
     @login_required
     def upload_schematisation(self, *args, **kwargs):

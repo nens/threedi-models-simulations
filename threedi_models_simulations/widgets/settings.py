@@ -34,6 +34,14 @@ def settings_are_valid() -> bool:
     return True
 
 
+def save_3di_settings(entry_name, value):
+    QSettings().setValue(f"threedi/{entry_name}", value)
+
+
+def read_3di_settings(entry_name, default_value=""):
+    return QSettings().value(f"threedi/{entry_name}", default_value)
+
+
 def api_url():
     return API_URL_PREFIX + QSettings().value("threedi/base_url", DEFAULT_BASE_URL)
 

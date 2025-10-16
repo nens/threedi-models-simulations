@@ -1,14 +1,30 @@
 import hashlib
 import os
+import re
 import shutil
 import warnings
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from qgis.core import QgsVectorLayer
-from qgis.PyQt.QtCore import QSettings
-from qgis.PyQt.QtWidgets import QFileDialog
+from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
+from qgis.PyQt.QtCore import QLocale, QSettings
+from qgis.PyQt.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDateEdit,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGroupBox,
+    QLineEdit,
+    QRadioButton,
+    QSpinBox,
+    QTimeEdit,
+    QWidget,
+)
 from qgis.utils import plugins
+
+from threedi_models_simulations.communication import progress_bar_callback_factory
 
 
 def is_writable(working_dir: str) -> bool:
@@ -187,3 +203,127 @@ def is_file_checksum_equal(file_path, etag):
         data = file_to_check.read()
         md5_returned = hashlib.md5(data).hexdigest()
         return etag == md5_returned
+
+
+def ensure_valid_schema(schematisation_filepath, communication):
+    """Check if schema version is up-to-date and migrate it if needed."""
+    try:
+        from threedi_schema import ThreediDatabase, errors
+    except ImportError:
+        communication.show_error(
+            "Could not import `threedi-schema` library to validate database schema."
+        )
+        return
+    try:
+        threedi_db = ThreediDatabase(schematisation_filepath)
+
+        # Add additional check to deal with legacy gpkgs created by schematisation editor
+        if schematisation_filepath.endswith(".gpkg"):
+            version_num = threedi_db.schema.get_version()
+            if version_num < 300:
+                warn_msg = "The selected file is not a valid 3Di schematisation database.\n\nYou may have selected a geopackage that was created by an older version of the 3Di Schematisation Editor (before version 2.0). In that case, there will probably be a Spatialite (*.sqlite) in the same folder. Please use that file instead."
+                communication.show_error(warn_msg)
+                return False
+
+        threedi_db.schema.validate_schema()
+    except errors.MigrationMissingError:
+        warn_and_ask_msg = (
+            "The selected schematisation database cannot be used because its database schema version is out of date. "
+            "Would you like to migrate your schematisation to the current schema version?"
+        )
+        do_migration = communication.ask(None, "Missing migration", warn_and_ask_msg)
+        if not do_migration:
+            return False
+        progress_bar_callback = progress_bar_callback_factory(communication)
+        migration_succeed, migration_feedback_msg = migrate_schematisation_schema(
+            schematisation_filepath, progress_bar_callback
+        )
+        if not migration_succeed:
+            communication.show_error(migration_feedback_msg)
+            return False
+    except Exception as e:
+        error_msg = f"{e}"
+        communication.show_error(error_msg)
+        return False
+    return True
+
+
+def scan_widgets_parameters(
+    main_widget, get_combobox_text, remove_postfix, lineedits_as_float_or_none
+):
+    """Scan widget children and get their values.
+
+    In Qt Designer, widgets in the same UI file need to have an unique object name. When an object
+    name already exist, Qt designer adds a _2 postfix. Use remove_postfix to remove these.
+    """
+    parameters = {}
+    for widget in main_widget.children():
+        obj_name = widget.objectName()
+        if remove_postfix:
+            result = re.match("^(.+)(_\d+)$", obj_name)
+            if result is not None:
+                obj_name = result.group(1)
+
+        if isinstance(widget, QLineEdit):
+            if lineedits_as_float_or_none:
+                if widget.text():
+                    val, to_float_possible = QLocale().toFloat(widget.text())
+                    assert to_float_possible  # Should be handled by validators
+                    if (
+                        "e" in widget.text().lower()
+                    ):  # we use python buildin for scientific notation
+                        parameters[obj_name] = float(widget.text())
+                    else:
+                        parameters[obj_name] = val
+                else:
+                    parameters[obj_name] = None
+            else:
+                parameters[obj_name] = widget.text()
+        elif isinstance(widget, (QCheckBox, QRadioButton)):
+            parameters[obj_name] = widget.isChecked()
+        elif isinstance(widget, QComboBox):
+            parameters[obj_name] = (
+                widget.currentText() if get_combobox_text else widget.currentIndex()
+            )
+        elif isinstance(widget, QDateEdit):
+            parameters[obj_name] = widget.dateTime().toString("yyyy-MM-dd")
+        elif isinstance(widget, QTimeEdit):
+            parameters[obj_name] = widget.time().toString("H:m")
+        elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            parameters[obj_name] = widget.value() if widget.text() else None
+        elif isinstance(widget, QgsProjectionSelectionWidget):
+            parameters[obj_name] = widget.crs()
+        elif isinstance(widget, QgsFileWidget):
+            parameters[obj_name] = widget.filePath()
+        elif isinstance(widget, QGroupBox):
+            if widget.isCheckable():
+                is_checked = widget.isChecked()
+                parameters[obj_name] = is_checked
+                if is_checked:
+                    parameters.update(
+                        scan_widgets_parameters(
+                            widget,
+                            get_combobox_text=get_combobox_text,
+                            remove_postfix=remove_postfix,
+                            lineedits_as_float_or_none=lineedits_as_float_or_none,
+                        )
+                    )
+            else:
+                parameters.update(
+                    scan_widgets_parameters(
+                        widget,
+                        get_combobox_text=get_combobox_text,
+                        remove_postfix=remove_postfix,
+                        lineedits_as_float_or_none=lineedits_as_float_or_none,
+                    )
+                )
+        elif isinstance(widget, QWidget):
+            parameters.update(
+                scan_widgets_parameters(
+                    widget,
+                    get_combobox_text=get_combobox_text,
+                    remove_postfix=remove_postfix,
+                    lineedits_as_float_or_none=lineedits_as_float_or_none,
+                )
+            )
+    return parameters

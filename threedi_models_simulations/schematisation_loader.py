@@ -13,6 +13,9 @@ from threedi_models_simulations.widgets.schematisation_download_dialog import (
 from threedi_models_simulations.widgets.schematisation_load_dialog import (
     SchematisationLoadDialog,
 )
+from threedi_models_simulations.widgets.schematisation_new_wizard import (
+    NewSchematisationWizard,
+)
 
 
 class SchematisationLoaderActions(Enum):
@@ -22,21 +25,25 @@ class SchematisationLoaderActions(Enum):
 
 
 class SchematisationLoader:
-    """Schematisation build options class."""
+    """Schematisation loading class."""
 
     def __init__(self, parent, communication):
         self.parent = parent
         self.communication = communication
 
-    # # @api_client_required  # TODO
-    # def new_schematisation(self):
-    #     """Create a new schematisation."""
-    #     self.new_schematisation_wizard = NewSchematisationWizard(self.plugin_dock)
-    #     self.new_schematisation_wizard.exec_()
-    #     new_schematisation = self.new_schematisation_wizard.new_schematisation
-    #     if new_schematisation is not None:
-    #         local_schematisation = self.new_schematisation_wizard.new_local_schematisation
-    #         self.load_local_schematisation(local_schematisation, action=SchematisationLoaderActions.CREATED)
+    def new_schematisation(self, threedi_api, organisations):
+        work_dir = QSettings().value("threedi/working_dir", "")
+        new_schematisation_wizard = NewSchematisationWizard(
+            threedi_api, work_dir, self.communication, organisations, self.parent
+        )
+        new_schematisation_wizard.exec()
+
+        new_schematisation = new_schematisation_wizard.new_schematisation
+        if new_schematisation is not None:
+            local_schematisation = new_schematisation_wizard.new_local_schematisation
+            self.load_local_schematisation(
+                local_schematisation, action=SchematisationLoaderActions.CREATED
+            )
 
     def load_local_schematisation(
         self,
@@ -114,7 +121,7 @@ class SchematisationLoader:
             return local_schematisation
         return None
 
-    # # @api_client_required  # TODO
+    # TODO
     # def load_remote_schematisation(self, schematisation, revision, progress_bar = None):
     #     """Download and load a schematisation from the server."""
     #     if isinstance(schematisation, dict):
