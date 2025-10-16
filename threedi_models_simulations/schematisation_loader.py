@@ -81,7 +81,6 @@ class SchematisationLoader:
                 self.communication.show_error(error_msg, self.parent, "Schematisation")
         return None
 
-    # # @api_client_required  # TODO
     def download_schematisation(self, threedi_api, organisations, communication):
         """Download an existing schematisation. Returns the local schematisation"""
         work_dir = QSettings().value("threedi/working_dir", "")

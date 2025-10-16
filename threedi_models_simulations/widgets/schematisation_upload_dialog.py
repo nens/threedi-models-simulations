@@ -46,6 +46,9 @@ class UploadManagementSignals(QObject):
 class SchematisationUploadDialog(QDialog):
     """Upload status overview dialog."""
 
+    load_local_schematisation_required = pyqtSignal()
+    update_schematisation_view_required = pyqtSignal()
+
     MAX_THREAD_COUNT = 1
 
     def __init__(
@@ -247,8 +250,9 @@ class SchematisationUploadDialog(QDialog):
                 "Please load the schematisation first before starting the upload."
             )
             self.communication.show_warn(warn_msg, self, "Load schematisation")
-            # TODO
-            # self.plugin_dock.build_options.load_local_schematisation()
+
+            self.reject()
+            self.load_local_schematisation_required.emit()
             return
         self.schematisation_filepath = (
             self.current_local_schematisation.schematisation_db_filepath
@@ -317,9 +321,7 @@ class SchematisationUploadDialog(QDialog):
 
     def on_revision_committed(self):
         """Handling actions on successful revision commit."""
-        # TODO via signal
-        # self.plugin_dock.update_schematisation_view()
-        pass
+        self.update_schematisation_view_required.emit()
 
     def on_cancel_upload(self):
         """Handling of canceling upload tasks."""

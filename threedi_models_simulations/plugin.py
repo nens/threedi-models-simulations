@@ -22,6 +22,7 @@ class ModelsSimulationsPlugin:
 
         self.dockwidget = DockWidget(None, self.iface)
         self.dockwidget.setVisible(False)
+        self.dockwidget.settings_requested.connect(self.show_settings)
         self.iface.addTabifiedDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea, self.dockwidget, raiseTab=True
         )

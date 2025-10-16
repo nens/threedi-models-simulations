@@ -2,6 +2,7 @@ import functools
 from pathlib import Path
 
 from qgis.PyQt import uic
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
 from threedi_models_simulations.communication import UICommunication
@@ -25,6 +26,7 @@ def login_required(func):
                 "Action reserved for logged in users. Logging-in..."
             )
             log_in_dialog = LogInDialog(self)
+            log_in_dialog.settings_requested.connect(self.settings_requested)
             if log_in_dialog.exec() == QDialog.DialogCode.Accepted:
                 self.threedi_api = log_in_dialog.get_api()
                 self.current_user_info = log_in_dialog.get_user_info()
@@ -45,6 +47,8 @@ FORM_CLASS, _ = uic.loadUiType(
 
 
 class DockWidget(QDockWidget, FORM_CLASS):
+    settings_requested = pyqtSignal()
+
     def __init__(self, parent, iface):
         super().__init__(parent)
         self.setupUi(self)
@@ -137,6 +141,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
 
     @login_required
     def upload_schematisation(self, *args, **kwargs):
+        # TODO
         # if self.upload_dlg is None:
         upload_dlg = SchematisationUploadDialog(
             self.threedi_api,
@@ -145,10 +150,13 @@ class DockWidget(QDockWidget, FORM_CLASS):
             self.communication,
             self,
         )
-        result = upload_dlg.exec()
-        # self.upload_dlg.show()
-        # self.upload_dlg.raise_()
-        # self.upload_dlg.activateWindow()
+        upload_dlg.load_local_schematisation_required.connect(
+            self.load_local_schematisation
+        )
+        upload_dlg.update_schematisation_view_required.connect(
+            self.update_schematisation_view
+        )
+        upload_dlg.exec()
 
     def update_schematisation_view(self):
         """Method for updating loaded schematisation labels."""

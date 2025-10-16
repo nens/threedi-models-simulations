@@ -258,7 +258,7 @@ class SchematisationDownloadDialog(QDialog):
                     description_item = QStandardItem(schematisation.meta["description"])
                 except (KeyError, TypeError):
                     description_item = QStandardItem("")
-                organisation = self.organisations[schematisation.owner]  # TODO
+                organisation = self.organisations[schematisation.owner]
                 owner_item = QStandardItem(organisation.name)
                 created_by_item = QStandardItem(
                     f"{schematisation.created_by_first_name} {schematisation.created_by_last_name}"
