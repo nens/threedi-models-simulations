@@ -28,8 +28,9 @@ from threedi_models_simulations.utils import scan_widgets_parameters
 class SchematisationSettingsPage(QWizardPage):
     """New schematisation settings definition page."""
 
-    def __init__(self, parent):
+    def __init__(self, communication, parent):
         super().__init__(parent)
+        self.communication = communication
         self.main_widget = SchematisationSettingsWidget(self)
         self.settings_are_valid = False
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -103,9 +104,7 @@ class SchematisationSettingsPage(QWizardPage):
             )
             warning_messages.append(warn)
         if warning_messages:
-            self.parent_wizard.plugin_dock.communication.show_warn(
-                "\n".join(warning_messages)
-            )
+            self.communication.show_warn("\n".join(warning_messages))
         return self.settings_are_valid
 
 
@@ -144,6 +143,7 @@ class SchematisationSettingsWidget(QWidget):
         self.crs.setToolTip(
             "Coordinate reference system that should be used to interpret your data."
         )
+        self.crs.setObjectName("crs")
 
         crs_layout = QGridLayout()
         crs_layout.addWidget(crs_label, 1, 0)
@@ -158,6 +158,7 @@ class SchematisationSettingsWidget(QWidget):
         self.use_2d_flow_group.setToolTip(
             "Check this box if you want to include surface flow (2D) in your schematisation"
         )
+        self.use_2d_flow_group.setObjectName("use_2d_flow_group")
         grid2d = QGridLayout(self.use_2d_flow_group)
 
         # DEM file row
@@ -170,6 +171,7 @@ class SchematisationSettingsWidget(QWidget):
         self.dem_file.setToolTip(
             "Raster file (.tif) that contains the elevation (m MSL) for each pixel"
         )
+        self.dem_file.setObjectName("dem_file")
 
         grid2d.addWidget(lbl_dem, 0, 0)
         grid2d.addWidget(self.dem_file, 0, 2, 1, 2)
@@ -190,6 +192,7 @@ class SchematisationSettingsWidget(QWidget):
         self.minimum_cell_size.setToolTip(
             "This value is used to fill in the 'minimum_cell_size' attribute in the model settings"
         )
+        self.minimum_cell_size.setObjectName("minimum_cell_size")
 
         grid2d.addWidget(self.minimum_cell_size, 1, 2, 1, 2)
 
@@ -198,9 +201,15 @@ class SchematisationSettingsWidget(QWidget):
         self.friction_shallow_water_depth_correction_flat.setToolTip(
             "For sloping areas, the appropriate numerical limiters will be set"
         )
+        self.friction_shallow_water_depth_correction_flat.setObjectName(
+            "friction_shallow_water_depth_correction_flat"
+        )
         self.friction_shallow_water_depth_correction_sloping = QRadioButton("Sloping")
         self.friction_shallow_water_depth_correction_sloping.setToolTip(
             "For sloping areas, the appropriate numerical limiters will be set"
+        )
+        self.friction_shallow_water_depth_correction_sloping.setObjectName(
+            "friction_shallow_water_depth_correction_sloping"
         )
 
         label_5 = QLabel("The model area is predominantly:")
@@ -223,6 +232,7 @@ class SchematisationSettingsWidget(QWidget):
             "Check this box if you want to schematise open water or hydraulic structures as 1D elements and/or include sewerage"
         )
         grid1d = QGridLayout(self.use_1d_flow_group)
+        self.use_1d_flow_group.setObjectName("use_1d_flow_group")
 
         self.manhole_aboveground_storage_area_label = QLabel(
             "Above-surface manhole storage area [m2]:"
@@ -238,6 +248,9 @@ class SchematisationSettingsWidget(QWidget):
         self.manhole_aboveground_storage_area.setToolTip(
             "This option is only relevant for sewerage models without 2D flow"
         )
+        self.manhole_aboveground_storage_area.setObjectName(
+            "manhole_aboveground_storage_area"
+        )
 
         grid1d.addWidget(self.manhole_aboveground_storage_area_label, 0, 0)
         grid1d.addWidget(self.manhole_aboveground_storage_area, 0, 2, 1, 2)
@@ -249,6 +262,8 @@ class SchematisationSettingsWidget(QWidget):
         self.use_0d_inflow_checkbox.setToolTip(
             "Check this box if you want to include rainfall-runoff from surfaces and/or urban wastewater production (dry weather flow)"
         )
+        self.use_0d_inflow_checkbox.setObjectName("use_0d_inflow_checkbox")
+
         self.use_0d_inflow_checkbox.setChecked(False)
         gridLayout_8.addWidget(self.use_0d_inflow_checkbox, 4, 0)
 
@@ -262,12 +277,13 @@ class SchematisationSettingsWidget(QWidget):
         self.friction_type_text = QComboBox()
         self.friction_type_text.setToolTip("Friction type")
         self.friction_type_text.addItems(["1: Chezy", "2: Manning"])
+        self.friction_type_text.setObjectName("friction_type_text")
 
         gridF.addWidget(lbl_fric_type, 0, 0)
         gridF.addWidget(self.friction_type_text, 0, 1, 1, 2)
 
-        lbl_fric_file = QLabel("Friction file:")
-        lbl_fric_file.setToolTip(
+        self.friction_coefficient_label = QLabel("Friction file:")
+        self.friction_coefficient_label.setToolTip(
             "Raster (.tif) that contains a friction coefficient for each pixel"
         )
 
@@ -276,8 +292,9 @@ class SchematisationSettingsWidget(QWidget):
         self.friction_coefficient_file.setToolTip(
             "Raster (.tif) that contains a friction coefficient for each pixel"
         )
+        self.friction_coefficient_file.setObjectName("friction_coefficient_file")
 
-        gridF.addWidget(lbl_fric_file, 2, 0)
+        gridF.addWidget(self.friction_coefficient_label, 2, 0)
         gridF.addWidget(self.friction_coefficient_file, 2, 1, 1, 2)
 
         lbl_fric_coeff = QLabel("Global 2D friction coefficient:")
@@ -293,6 +310,7 @@ class SchematisationSettingsWidget(QWidget):
         self.friction_coefficient.setToolTip(
             "If you do not want to specify the friction value per pixel, use this option to set a global friction coefficient"
         )
+        self.friction_coefficient.setObjectName("friction_coefficient")
 
         gridF.addWidget(lbl_fric_coeff, 3, 0)
         gridF.addWidget(self.friction_coefficient, 3, 2)
@@ -317,6 +335,7 @@ class SchematisationSettingsWidget(QWidget):
         self.time_step.setMinimumSize(QSize(150, 25))
         self.time_step.setButtonSymbols(self.time_step.NoButtons)
         inner_layout.addWidget(self.time_step, 0, 2)
+        self.time_step.setObjectName("time_step")
 
         lbl_duration = QLabel("Typical simulation duration:")
         lbl_duration.setToolTip("Used to set the output time step")
@@ -327,6 +346,7 @@ class SchematisationSettingsWidget(QWidget):
         self.output_time_step_text.addItems(
             ["0-3 hours", "3-12 hours", "12-24 hours", "> 24 hours"]
         )
+        self.output_time_step_text.setObjectName("output_time_step_text")
         inner_layout.addWidget(self.output_time_step_text, 1, 1, 1, 2)
 
         widget_inner.setLayout(inner_layout)

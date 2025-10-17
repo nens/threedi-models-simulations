@@ -51,7 +51,9 @@ class NewSchematisationWizard(QWizard):
 
         self.schematisation_name_page = SchematisationNamePage(organisations, self)
         self.schematisation_explain_page = SchematisationExplainPage(self)
-        self.schematisation_settings_page = SchematisationSettingsPage(self)
+        self.schematisation_settings_page = SchematisationSettingsPage(
+            self.communication, self
+        )
         self.addPage(self.schematisation_name_page)
         self.addPage(self.schematisation_explain_page)
         self.addPage(self.schematisation_settings_page)
