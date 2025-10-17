@@ -14,6 +14,7 @@ from threedi_schema import ThreediDatabase
 
 from threedi_models_simulations.threedi_api_utils import (
     SchematisationApiMapper,
+    create_schematisation,
     extract_error_message,
 )
 from threedi_models_simulations.utils import ensure_valid_schema, geopackage_layer
@@ -26,6 +27,14 @@ from threedi_models_simulations.widgets.new_wizard_pages.name import (
 from threedi_models_simulations.widgets.new_wizard_pages.settings import (
     SchematisationSettingsPage,
 )
+
+
+class CommitErrors(Exception):
+    pass
+
+
+class GeoPackageError(Exception):
+    pass
 
 
 class NewSchematisationWizard(QWizard):
@@ -68,16 +77,31 @@ class NewSchematisationWizard(QWizard):
         """Get settings from the wizard and create new schematisation (locally and remotely)."""
         if not self.schematisation_settings_page.settings_are_valid:
             return
-        name, description, tags, owner = (
-            self.schematisation_name_page.main_widget.get_new_schematisation_data()
+
+        name = self.schematisation_name_page.field("schematisation_name")
+        description = self.schematisation_name_page.field("schematisation_description")
+        tags = self.schematisation_name_page.field("schematisation_tags")
+        if not tags:
+            tags = []
+        else:
+            tags = [tag.strip() for tag in tags.split(",")]
+
+        organisation = self.schematisation_name_page.field(
+            "schematisation_organisation"
         )
+        owner = organisation.unique_id
+
         schematisation_settings = self.schematisation_settings_page.main_widget.collect_new_schematisation_settings()
         raster_filepaths = (
             self.schematisation_settings_page.main_widget.raster_filepaths()
         )
         try:
-            schematisation = self.tc.create_schematisation(
-                name, owner, tags=tags, meta={"description": description}
+            schematisation = create_schematisation(
+                self.threedi_api,
+                name,
+                owner,
+                tags=tags,
+                meta={"description": description},
             )
             local_schematisation = LocalSchematisation(
                 self.working_dir,
@@ -186,12 +210,27 @@ class NewSchematisationWizard(QWizard):
             else:
                 return  # ensure_valid_schema deals with showing errors.
 
-            # TODO
-            name, description, tags, owner = (
-                self.schematisation_name_page.main_widget.get_new_schematisation_data()
+            name = self.schematisation_name_page.field("schematisation_name")
+            description = self.schematisation_name_page.field(
+                "schematisation_description"
             )
-            schematisation = self.tc.create_schematisation(
-                name, owner, tags=tags, meta={"description": description}
+            tags = self.schematisation_name_page.field("schematisation_tags")
+            if not tags:
+                tags = []
+            else:
+                tags = [tag.strip() for tag in tags.split(",")]
+
+            organisation = self.schematisation_name_page.field(
+                "schematisation_organisation"
+            )
+            owner = organisation.unique_id
+
+            schematisation = create_schematisation(
+                self.threedi_api,
+                name,
+                owner,
+                tags=tags,
+                meta={"description": description},
             )
 
             local_schematisation = LocalSchematisation(

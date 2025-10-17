@@ -43,6 +43,19 @@ class SchematisationNamePage(QWizardPage):
         )
         self.main_widget.le_geopackage_path.textChanged.connect(self.update_pages_order)
 
+        self.registerField(
+            "schematisation_name", self.main_widget.le_schematisation_name
+        )
+        self.registerField(
+            "schematisation_description", self.main_widget.le_description
+        )
+        self.registerField("schematisation_tags", self.main_widget.le_tags)
+        self.registerField(
+            "schematisation_organisation",
+            self.main_widget.cbo_organisations,
+            "currentData",
+        )
+
     def update_pages_order(self):
         """Check if user wants to use an existing GeoPackage and finalize the wizard, if needed."""
         if self.main_widget.rb_existing_geopackage.isChecked():
@@ -177,18 +190,6 @@ class SchematisationNameWidget(QWidget):
         last_organisation = read_3di_settings("threedi/last_used_organisation")
         if last_organisation:
             self.cbo_organisations.setCurrentText(last_organisation)
-
-    def get_new_schematisation_data(self):
-        """Return new schematisation name, tags and owner."""
-        name = self.le_schematisation_name.text()
-        description = self.le_description.text()
-        if not self.le_tags.text():
-            tags = []
-        else:
-            tags = [tag.strip() for tag in self.le_tags.text().split(",")]
-        organisation = self.cbo_organisations.currentData()
-        owner = organisation.unique_id
-        return name, description, tags, owner
 
     def browse_existing_geopackage(self):
         gpkg_filter = "GeoPackage/SQLite (*.gpkg *.GPKG *.sqlite *SQLITE)"

@@ -351,6 +351,11 @@ def upload_schematisation_revision(
     )
 
 
+def create_schematisation(threedi_api, name: str, owner: str, **data) -> Schematisation:
+    data.update({"name": name, "owner": owner})
+    return threedi_api.schematisations_create(data)
+
+
 def delete_schematisation_revision_sqlite(
     threedi_api, schematisation_pk: int, revision_pk: int
 ):

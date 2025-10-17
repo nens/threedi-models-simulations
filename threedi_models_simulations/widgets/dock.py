@@ -142,9 +142,12 @@ class DockWidget(QDockWidget, FORM_CLASS):
 
     @login_required
     def new_schematisation(self, *args, **kwargs):
-        self.schematisation_loader.new_schematisation(
+        local_schematisation = self.schematisation_loader.new_schematisation(
             self.threedi_api, self.organisations
         )
+        if local_schematisation:
+            self.current_local_schematisation = local_schematisation
+            self.update_schematisation_view()
 
     @login_required
     def upload_schematisation(self, *args, **kwargs):

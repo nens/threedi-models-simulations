@@ -44,6 +44,7 @@ class SchematisationLoader:
             self.load_local_schematisation(
                 local_schematisation, action=SchematisationLoaderActions.CREATED
             )
+            return local_schematisation
 
     def load_local_schematisation(
         self,
