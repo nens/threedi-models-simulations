@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
-from qgis.core import QgsRasterLayer, QgsUnitTypes
+from qgis.core import Qgis, QgsMessageLog, QgsRasterLayer, QgsUnitTypes
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor, QPalette
@@ -133,8 +133,6 @@ class SchematisationSettingsWidget(QWidget):
         self.schematisation_settings = QWidget()
         gridLayout_8 = QGridLayout(self.schematisation_settings)
 
-        gridLayout_8.addWidget(QLabel("Schematisation settings"), 0, 0, 1, 1)
-
         crs_label = QLabel("Coordinate reference system:")
         crs_label.setToolTip("Your schematization's CRS. Must be a projected CRS.")
         crs_label.setMinimumSize(QSize(350, 0))
@@ -150,7 +148,7 @@ class SchematisationSettingsWidget(QWidget):
         crs_layout.addWidget(self.crs, 1, 1)
         crs_widget = QWidget()
         crs_widget.setLayout(crs_layout)
-        gridLayout_8.addWidget(crs_widget, 1, 0, 1, 1)
+        gridLayout_8.addWidget(crs_widget, 0, 0, 1, 1)
 
         # 2D Flow group (row 2)
         self.use_2d_flow_group = QGroupBox("2D Flow")
@@ -223,7 +221,7 @@ class SchematisationSettingsWidget(QWidget):
         hfr.addWidget(self.friction_shallow_water_depth_correction_sloping)
         grid2d.addLayout(hfr, 2, 2, 1, 2)
 
-        gridLayout_8.addWidget(self.use_2d_flow_group, 2, 0)
+        gridLayout_8.addWidget(self.use_2d_flow_group, 1, 0)
 
         # 1D Flow group (row 3)
         self.use_1d_flow_group = QGroupBox("1D Flow")
@@ -255,7 +253,7 @@ class SchematisationSettingsWidget(QWidget):
         grid1d.addWidget(self.manhole_aboveground_storage_area_label, 0, 0)
         grid1d.addWidget(self.manhole_aboveground_storage_area, 0, 2, 1, 2)
 
-        gridLayout_8.addWidget(self.use_1d_flow_group, 3, 0)
+        gridLayout_8.addWidget(self.use_1d_flow_group, 2, 0)
 
         # 0D inflow checkbox (row 4)
         self.use_0d_inflow_checkbox = QCheckBox("0D Inflow")
@@ -265,7 +263,7 @@ class SchematisationSettingsWidget(QWidget):
         self.use_0d_inflow_checkbox.setObjectName("use_0d_inflow_checkbox")
 
         self.use_0d_inflow_checkbox.setChecked(False)
-        gridLayout_8.addWidget(self.use_0d_inflow_checkbox, 4, 0)
+        gridLayout_8.addWidget(self.use_0d_inflow_checkbox, 3, 0)
 
         # Friction coefficients group (row 5)
         self.friction_coefficients_group = QGroupBox("Friction coefficients")
@@ -315,7 +313,7 @@ class SchematisationSettingsWidget(QWidget):
         gridF.addWidget(lbl_fric_coeff, 3, 0)
         gridF.addWidget(self.friction_coefficient, 3, 2)
 
-        gridLayout_8.addWidget(self.friction_coefficients_group, 5, 0)
+        gridLayout_8.addWidget(self.friction_coefficients_group, 4, 0)
         gridLayout.addWidget(self.schematisation_settings, 2, 0)
 
         # Simulation / time step settings
@@ -789,6 +787,8 @@ class SchematisationSettingsWidget(QWidget):
         else:
             max_degree = 5
         user_settings["max_degree_gauss_seidel"] = max_degree
+
+        QgsMessageLog.logMessage(str(user_settings), level=Qgis.Critical)
         return user_settings
 
     def raster_filepaths(self):
