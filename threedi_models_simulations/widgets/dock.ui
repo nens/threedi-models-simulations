@@ -165,7 +165,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_6">
+        <widget class="QPushButton" name="btn_manage">
          <property name="text">
           <string>Manage</string>
          </property>

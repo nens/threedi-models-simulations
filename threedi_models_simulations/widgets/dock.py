@@ -1,11 +1,13 @@
 import functools
+import webbrowser
 from pathlib import Path
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import QSettings, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
 from threedi_models_simulations.communication import UICommunication
+from threedi_models_simulations.constants import MANAGEMENT_URL_PREFIX
 from threedi_models_simulations.schematisation_loader import (
     SchematisationLoader,
     SchematisationLoaderActions,
@@ -67,6 +69,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.btn_download.clicked.connect(self.download_schematisation)
         self.btn_upload.clicked.connect(self.upload_schematisation)
         self.btn_new.clicked.connect(self.new_schematisation)
+        self.btn_manage.clicked.connect(self.on_manage)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -188,3 +191,10 @@ class DockWidget(QDockWidget, FORM_CLASS):
             self.label_schematisation.setText("")
             self.label_schematisation.setToolTip("")
             self.label_revision.setText("")
+
+    def on_manage(self):
+        """Open 3Di management webpage."""
+        url = QSettings().value("threedi/base_url")
+        if url:
+            url = f"{MANAGEMENT_URL_PREFIX}{url}"
+            webbrowser.open(url)
