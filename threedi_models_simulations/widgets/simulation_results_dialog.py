@@ -10,6 +10,7 @@ from qgis.PyQt.QtCore import (
     QSortFilterProxyModel,
     Qt,
     QThreadPool,
+    pyqtSignal,
 )
 from qgis.PyQt.QtGui import QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
@@ -78,6 +79,8 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
 class SimulationResultDialog(QDialog):
     """Dialog with methods for handling simulations results."""
+
+    fetch_request = pyqtSignal()
 
     def __init__(self, threedi_api, user_info, communication, workdir, parent):
         super().__init__(parent)
@@ -162,9 +165,6 @@ class SimulationResultDialog(QDialog):
         self.tv_model = None
         self.setup_view_model()
 
-        # TODO
-        # self.plugin_dock.simulations_progresses_sentinel.simulation_finished.connect(self.update_finished_list)
-
         self.pb_cancel.clicked.connect(self.close)
         self.pb_download.clicked.connect(self.download_results)
         self.tv_finished_sim_tree.selectionModel().selectionChanged.connect(
@@ -220,6 +220,8 @@ class SimulationResultDialog(QDialog):
 
         # TODO
         # self.plugin_dock.simulations_progresses_sentinel.fetch_finished_simulations()
+        self.fetch_request.emit()
+
         self.communication.bar_info("Finished simulation results reloaded!")
 
     def toggle_refresh_results(self):
@@ -402,7 +404,7 @@ class SimulationResultDialog(QDialog):
                         self.communication.show_warn(warn_msg, self, "Warning")
                         return
                 gridadmin_downloads_gpkg = fetch_model_geopackage_download(
-                    simulation_model_id
+                    self.threedi_api, simulation_model_id
                 )
             except ApiException as e:
                 error_msg = extract_error_message(e)
@@ -429,7 +431,7 @@ class SimulationResultDialog(QDialog):
             simulation_subdirectory_path = os.path.join(
                 results_dir, simulation_subdirectory
             )
-            downloads = fetch_simulation_downloads(sim_id)
+            downloads = fetch_simulation_downloads(self.threedi_api, sim_id)
             if gridadmin_downloads is not None:
                 downloads.append(gridadmin_downloads)
             if gridadmin_downloads_gpkg is not None:

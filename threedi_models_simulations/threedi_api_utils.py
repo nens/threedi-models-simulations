@@ -91,6 +91,18 @@ from threedi_api_client.openapi import (
 from threedi_models_simulations.constants import DOWNLOAD_CHUNK_SIZE
 
 
+class SimulationStatusName(Enum):
+    CRASHED = "crashed"
+    CREATED = "created"
+    ENDED = "ended"
+    FINISHED = "finished"
+    INITIALIZED = "initialized"
+    POSTPROCESSING = "postprocessing"
+    QUEUED = "queued"
+    STARTING = "starting"
+    STOPPED = "stopped"
+
+
 class FileState(Enum):
     """Possible uploaded file states."""
 
@@ -544,6 +556,13 @@ def fetch_simulation_downloads(
         )
         downloads.append((result_file, download))
     return downloads
+
+
+def fetch_simulation_statuses(threedi_api, **params) -> List[SimulationStatus]:
+    """Fetch simulations statuses."""
+    params["created__date__gt"] = expiration_date()
+    statuses = paginated_fetch(threedi_api.statuses_list, **params)
+    return statuses
 
 
 class SchematisationApiMapper:

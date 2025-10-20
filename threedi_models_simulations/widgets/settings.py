@@ -46,6 +46,10 @@ def api_url():
     return API_URL_PREFIX + QSettings().value("threedi/base_url", DEFAULT_BASE_URL)
 
 
+def wss_url():
+    return api_url().replace("https:", "wss:").replace("http:", "ws:")
+
+
 class SettingsDialog(QDialog):
     settings_changed = pyqtSignal()
 

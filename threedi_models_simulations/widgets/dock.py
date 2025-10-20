@@ -2,10 +2,12 @@ import functools
 import webbrowser
 from pathlib import Path
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSettings, pyqtSignal
+from qgis.PyQt.QtCore import QSettings, Qt, QThread, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
 
+from threedi_models_simulations.authentication import get_3di_auth
 from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.constants import MANAGEMENT_URL_PREFIX
 from threedi_models_simulations.schematisation_loader import (
@@ -16,9 +18,11 @@ from threedi_models_simulations.widgets.login import LogInDialog
 from threedi_models_simulations.widgets.schematisation_upload_dialog import (
     SchematisationUploadDialog,
 )
+from threedi_models_simulations.widgets.settings import wss_url
 from threedi_models_simulations.widgets.simulation_results_dialog import (
     SimulationResultDialog,
 )
+from threedi_models_simulations.workers.simulations import SimulationProgressWorker
 
 
 def login_required(func):
@@ -66,6 +70,9 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.schematisation_loader = SchematisationLoader(self, self.communication)
         self.current_local_schematisation = None
 
+        self.simulations_progresses_sentinel = None
+        self.simulations_progresses_thread = None
+
         self.btn_log_in_out.clicked.connect(self.on_log_in_log_out)
         self.btn_load_schematisation.clicked.connect(self.load_local_schematisation)
         self.btn_load_revision.clicked.connect(self.load_local_schematisation)
@@ -88,8 +95,8 @@ class DockWidget(QDockWidget, FORM_CLASS):
         pass
 
     def on_log_out(self):
-        # if self.simulations_progresses_thread is not None:
-        #     self.stop_fetching_simulations_progresses()
+        if self.simulations_progresses_thread is not None:
+            self.stop_fetching_simulations_progresses()
         #     if (
         #         self.simulation_overview_dlg is not None
         #         and self.simulation_overview_dlg.model_selection_dlg is not None
@@ -117,9 +124,33 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.label_user.setText(
             f"{self.current_user_info['first_name']} {self.current_user_info['last_name']}"
         )
-        # self.initialize_simulations_progresses_thread()
+        self.initialize_simulations_progresses_thread()
         # self.initialize_simulation_overview()
-        # self.initialize_simulation_results()
+
+    def initialize_simulations_progresses_thread(self):
+        """Initializing of the background thread."""
+        if self.simulations_progresses_thread is not None:
+            self.terminate_fetching_simulations_progresses_thread()
+        self.simulations_progresses_thread = QThread()
+
+        _, personal_api_key = get_3di_auth()
+        self.simulations_progresses_sentinel = SimulationProgressWorker(
+            self.threedi_api, wss_url(), personal_api_key
+        )
+
+        self.simulations_progresses_sentinel.moveToThread(
+            self.simulations_progresses_thread
+        )
+        self.simulations_progresses_sentinel.thread_finished.connect(
+            self.on_fetching_simulations_progresses_finished
+        )
+        self.simulations_progresses_sentinel.thread_failed.connect(
+            self.on_fetching_simulations_progresses_failed
+        )
+        self.simulations_progresses_thread.started.connect(
+            self.simulations_progresses_sentinel.run
+        )
+        self.simulations_progresses_thread.start()
 
     def load_local_schematisation(
         self,
@@ -178,10 +209,17 @@ class DockWidget(QDockWidget, FORM_CLASS):
     @login_required
     def show_simulation_results(self, *args, **kwargs):
         work_dir = QSettings().value("threedi/working_dir", "")
-        simulation_results_dlg = SimulationResultDialog(
+        self.simulation_results_dlg = SimulationResultDialog(
             self.threedi_api, self.current_user_info, self.communication, work_dir, self
         )
-        simulation_results_dlg.show()
+        self.simulations_progresses_sentinel.simulation_finished.connect(
+            self.simulation_results_dlg.update_finished_list
+        )
+        self.simulation_results_dlg.fetch_request.connect(
+            self.simulations_progresses_sentinel.fetch_finished_simulations
+        )
+
+        self.simulation_results_dlg.show()
 
     def update_schematisation_view(self):
         """Method for updating loaded schematisation labels."""
@@ -210,3 +248,40 @@ class DockWidget(QDockWidget, FORM_CLASS):
         if url:
             url = f"{MANAGEMENT_URL_PREFIX}{url}"
             webbrowser.open(url)
+
+    def on_fetching_simulations_progresses_finished(self, msg):
+        """Method for cleaning up background thread after it sends 'thread_finished'."""
+        self.communication.bar_info(msg)
+        self.simulations_progresses_thread.quit()
+        self.simulations_progresses_thread.wait()
+        self.simulations_progresses_thread = None
+        self.simulations_progresses_sentinel = None
+
+    def on_fetching_simulations_progresses_failed(self, msg):
+        """Reporting fetching progresses failure."""
+        self.communication.bar_error(msg, log_text_color=Qt.red)
+
+    def terminate_fetching_simulations_progresses_thread(self):
+        """Forcing termination of background thread if it's still running."""
+        if (
+            self.simulations_progresses_thread is not None
+            and self.simulations_progresses_thread.isRunning()
+        ):
+            self.communication.bar_info(
+                "Terminating fetching simulations progresses thread."
+            )
+            self.simulations_progresses_thread.terminate()
+            self.communication.bar_info(
+                "Waiting for fetching simulations progresses thread termination."
+            )
+            self.simulations_progresses_thread.wait()
+            self.communication.bar_info(
+                "Fetching simulations progresses worker terminated."
+            )
+            self.simulations_progresses_thread = None
+            self.simulations_progresses_sentinel = None
+
+    def stop_fetching_simulations_progresses(self):
+        """Changing 'thread_active' flag inside background task that is fetching simulations progresses."""
+        if self.simulations_progresses_sentinel is not None:
+            self.simulations_progresses_sentinel.stop_listening()
