@@ -104,7 +104,7 @@ class SchematisationSettingsPage(QWizardPage):
             )
             warning_messages.append(warn)
         if warning_messages:
-            self.communication.show_warn("\n".join(warning_messages))
+            self.communication.show_warn("\n".join(warning_messages), self, "Warning")
         return self.settings_are_valid
 
 
@@ -249,6 +249,7 @@ class SchematisationSettingsWidget(QWidget):
         self.manhole_aboveground_storage_area.setObjectName(
             "manhole_aboveground_storage_area"
         )
+        self.manhole_aboveground_storage_area.setEnabled(False)
 
         grid1d.addWidget(self.manhole_aboveground_storage_area_label, 0, 0)
         grid1d.addWidget(self.manhole_aboveground_storage_area, 0, 2, 1, 2)
@@ -723,6 +724,7 @@ class SchematisationSettingsWidget(QWidget):
             remove_postfix=False,
             lineedits_as_float_or_none=False,
         )
+        QgsMessageLog.logMessage(str(user_settings), level=Qgis.Critical)
         crs = user_settings["crs"]
         epsg = crs.authid()
         user_settings["epsg_code"] = int(epsg.split(":")[-1]) if epsg else 0
