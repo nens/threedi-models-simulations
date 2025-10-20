@@ -65,17 +65,16 @@ class SimulationOverviewDialog(QDialog):
         self.setWindowModality(Qt.ApplicationModal)
         self.setMinimumSize(750, 500)
         self.resize(750, 500)
-        self.setWindowTitle("Simulation overview")
+        self.setWindowTitle("Running simulation overview")
 
         gridLayout = QGridLayout(self)
-        gridLayout.addWidget(QLabel("Running simulations", self), 0, 1)
 
         self.label_user = QLabel("TextLabel", self)
-        gridLayout.addWidget(self.label_user, 1, 1)
+        gridLayout.addWidget(self.label_user, 0, 1)
 
         self.tv_sim_tree = QTreeView(self)
         self.tv_sim_tree.setEditTriggers(QTreeView.NoEditTriggers)
-        gridLayout.addWidget(self.tv_sim_tree, 2, 1, 1, 3)
+        gridLayout.addWidget(self.tv_sim_tree, 1, 1, 1, 3)
 
         horizontalLayout_2 = QHBoxLayout()
 
@@ -91,10 +90,9 @@ class SimulationOverviewDialog(QDialog):
         self.refresh_btn.setIconSize(QSize(18, 18))
         horizontalLayout_2.addWidget(self.refresh_btn)
 
-        gridLayout.addLayout(horizontalLayout_2, 3, 1, 1, 3)
+        gridLayout.addLayout(horizontalLayout_2, 2, 1, 1, 3)
 
         self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
 
         self.pb_hide = QPushButton("Cancel", self)
         self.pb_hide.setMinimumSize(0, 30)
@@ -109,7 +107,7 @@ class SimulationOverviewDialog(QDialog):
         self.pb_new_sim.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.horizontalLayout.addWidget(self.pb_new_sim)
 
-        gridLayout.addLayout(self.horizontalLayout, 4, 1, 1, 3)
+        gridLayout.addLayout(self.horizontalLayout, 3, 1, 1, 3)
 
         self.setTabOrder(self.tv_sim_tree, self.refresh_btn)
         self.setTabOrder(self.refresh_btn, self.pb_hide)
@@ -159,7 +157,7 @@ class SimulationOverviewDialog(QDialog):
 
     def refresh_running_simulations_list(self):
         """Refresh running simulations list."""
-        # TODO
+        # Is this necessary?
         # self.plugin_dock.simulations_progresses_sentinel.progresses_fetched.disconnect(self.update_progress)
         # self.plugin_dock.simulations_progresses_sentinel.stop_listening(be_quite=True)
 
@@ -169,7 +167,7 @@ class SimulationOverviewDialog(QDialog):
         self.simulations_without_progress.clear()
         self.setup_view_model()
 
-        # TODO
+        # Is this necessary?
         # self.plugin_dock.simulations_progresses_sentinel.progresses_fetched.connect(self.update_progress)
         # self.plugin_dock.simulations_progresses_sentinel.start_listening()
 
