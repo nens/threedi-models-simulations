@@ -165,7 +165,7 @@ class SimulationResultDialog(QDialog):
         self.tv_model = None
         self.setup_view_model()
 
-        self.pb_cancel.clicked.connect(self.close)
+        self.pb_cancel.clicked.connect(self.reject)
         self.pb_download.clicked.connect(self.download_results)
         self.tv_finished_sim_tree.selectionModel().selectionChanged.connect(
             self.toggle_refresh_results
@@ -218,8 +218,6 @@ class SimulationResultDialog(QDialog):
             self.toggle_refresh_results
         )
 
-        # TODO
-        # self.plugin_dock.simulations_progresses_sentinel.fetch_finished_simulations()
         self.fetch_request.emit()
 
         self.communication.bar_info("Finished simulation results reloaded!")

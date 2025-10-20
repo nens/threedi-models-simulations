@@ -2,7 +2,6 @@ import functools
 import webbrowser
 from pathlib import Path
 
-from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSettings, Qt, QThread, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog, QDockWidget
@@ -209,17 +208,20 @@ class DockWidget(QDockWidget, FORM_CLASS):
     @login_required
     def show_simulation_results(self, *args, **kwargs):
         work_dir = QSettings().value("threedi/working_dir", "")
-        self.simulation_results_dlg = SimulationResultDialog(
+        simulation_results_dlg = SimulationResultDialog(
             self.threedi_api, self.current_user_info, self.communication, work_dir, self
         )
         self.simulations_progresses_sentinel.simulation_finished.connect(
-            self.simulation_results_dlg.update_finished_list
+            simulation_results_dlg.update_finished_list
         )
-        self.simulation_results_dlg.fetch_request.connect(
+        simulation_results_dlg.fetch_request.connect(
             self.simulations_progresses_sentinel.fetch_finished_simulations
         )
 
-        self.simulation_results_dlg.show()
+        # This fills the dialog
+        self.simulations_progresses_sentinel.fetch_finished_simulations()
+
+        simulation_results_dlg.exec()
 
     def update_schematisation_view(self):
         """Method for updating loaded schematisation labels."""
