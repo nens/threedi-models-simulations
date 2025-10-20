@@ -287,3 +287,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         """Changing 'thread_active' flag inside background task that is fetching simulations progresses."""
         if self.simulations_progresses_sentinel is not None:
             self.simulations_progresses_sentinel.stop_listening()
+
+    def unload(self):
+        self.on_log_out()
+        self.terminate_fetching_simulations_progresses_thread()

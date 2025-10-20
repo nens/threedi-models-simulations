@@ -1,3 +1,4 @@
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QAction
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -51,6 +52,7 @@ class ModelsSimulationsPlugin:
 
     def unload(self):
         self.dockwidget.setVisible(False)
+        self.dockwidget.unload()
 
         for action in self.actions:
             self.iface.removePluginMenu("3Di Models and Simulations", action)
