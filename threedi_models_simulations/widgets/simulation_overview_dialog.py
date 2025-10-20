@@ -43,7 +43,7 @@ from threedi_models_simulations.workers.simulations import SimulationStatusName
 class SimulationOverviewDialog(QDialog):
     """Dialog with methods for handling running simulations."""
 
-    PROGRESS_COLUMN_IDX = 2
+    PROGRESS_COLUMN_IDX = 1
     MAX_THREAD_COUNT = 1
 
     refresh_requested = pyqtSignal()
@@ -143,8 +143,10 @@ class SimulationOverviewDialog(QDialog):
         """Setting up model and columns for TreeView."""
         delegate = SimulationProgressDelegate(self.tv_sim_tree)
         self.tv_sim_tree.setItemDelegateForColumn(self.PROGRESS_COLUMN_IDX, delegate)
-        self.tv_model = QStandardItemModel(0, 3)
-        self.tv_model.setHorizontalHeaderLabels(["Simulation name", "User", "Progress"])
+        self.tv_model = QStandardItemModel(0, 4)
+        self.tv_model.setHorizontalHeaderLabels(
+            ["Simulation name", "Progress", "User", "Created at"]
+        )
         self.tv_sim_tree.setModel(self.tv_model)
 
     def refresh_last_updated_label(self):
@@ -180,8 +182,12 @@ class SimulationOverviewDialog(QDialog):
         status_name = sim_data["status"]
         progress_percentage = sim_data["progress"]
         progress_item = QStandardItem()
+        created_at = sim_data["date_created"]
+        created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        formatted_date = created_date.strftime("%B %d, %Y")
+        date_item = QStandardItem(formatted_date)
         progress_item.setData((status_name, progress_percentage), PROGRESS_ROLE)
-        self.tv_model.appendRow([sim_name_item, user_item, progress_item])
+        self.tv_model.appendRow([sim_name_item, progress_item, user_item, date_item])
         self.running_simulations[sim_id] = sim_data
         for i in range(self.PROGRESS_COLUMN_IDX):
             self.tv_sim_tree.resizeColumnToContents(i)
@@ -230,7 +236,6 @@ class SimulationOverviewDialog(QDialog):
 
     def new_wizard_init(self):
         """Open new simulation initiation options dialog."""
-        # communication, current_user, threedi_api, organisations, working_dir, parent
         self.model_selection_dlg = ModelSelectionDialog(
             self.communication,
             self.current_user,
