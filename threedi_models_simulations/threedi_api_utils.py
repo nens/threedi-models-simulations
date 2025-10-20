@@ -1,6 +1,6 @@
 import json
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, List, Tuple
 
@@ -156,6 +156,15 @@ def paginated_fetch(api_method: Callable, *args, **kwargs) -> List[Any]:
             response = api_method(*args, offset=offset, limit=limit, **kwargs)
             results_list += response.results
     return results_list
+
+
+def expiration_time():
+    return datetime.now(timezone.utc) - timedelta(days=7)
+
+
+def expiration_date():
+    created__date__gt = expiration_time().strftime("%Y-%m-%d")
+    return created__date__gt
 
 
 def fetch_models_with_count(
@@ -509,6 +518,32 @@ def fetch_models_with_count(
 def fetch_contracts(threedi_api, **data) -> List[Contract]:
     """Get valid 3Di contracts list."""
     return paginated_fetch(threedi_api.contracts_list, **data)
+
+
+def fetch_simulations(threedi_api) -> List[Simulation]:
+    """Fetch all simulations available for current user."""
+    return paginated_fetch(
+        threedi_api.simulations_list, created__date__gt=expiration_date()
+    )
+
+
+def fetch_simulation(threedi_api, simulation_pk: int) -> Simulation:
+    return threedi_api.simulations_read(id=simulation_pk)
+
+
+def fetch_simulation_downloads(
+    threedi_api, simulation_pk: int
+) -> List[Tuple[ResultFile, Download]]:
+    """Fetch simulation downloads list."""
+    spk_str = str(simulation_pk)
+    downloads = []
+    results_list = paginated_fetch(threedi_api.simulations_results_files_list, spk_str)
+    for result_file in results_list:
+        download = threedi_api.simulations_results_files_download(
+            result_file.id, spk_str
+        )
+        downloads.append((result_file, download))
+    return downloads
 
 
 class SchematisationApiMapper:

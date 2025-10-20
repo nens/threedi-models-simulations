@@ -327,3 +327,14 @@ def scan_widgets_parameters(
                 )
             )
     return parameters
+
+
+def translate_illegal_chars(
+    text, illegal_characters=r'\/:*?"<>|', replacement_character="-"
+):
+    """Remove illegal characters from the text."""
+    sanitized_text = "".join(
+        char if char not in illegal_characters else replacement_character
+        for char in text
+    )
+    return sanitized_text
