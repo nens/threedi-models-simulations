@@ -1,18 +1,18 @@
 import os
 from datetime import datetime
 
-from qgis.PyQt.QtCore import QSize, Qt, QThreadPool, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QIcon, QStandardItem, QStandardItemModel
+from qgis.PyQt.QtCore import Qt, QThreadPool, pyqtSignal
+from qgis.PyQt.QtGui import QAction, QColor, QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
-    QToolButton,
     QTreeView,
 )
 from threedi_api_client.openapi import ApiException
@@ -63,54 +63,39 @@ class SimulationOverviewDialog(QDialog):
         self.setWindowModality(Qt.ApplicationModal)
         self.setMinimumSize(750, 500)
         self.resize(750, 500)
-        self.setWindowTitle("Running simulation overview")
+        self.setWindowTitle("Running simulations")
 
         gridLayout = QGridLayout(self)
 
-        self.label_user = QLabel("TextLabel", self)
-        gridLayout.addWidget(self.label_user, 0, 1)
-
         self.tv_sim_tree = QTreeView(self)
         self.tv_sim_tree.setEditTriggers(QTreeView.NoEditTriggers)
-        gridLayout.addWidget(self.tv_sim_tree, 1, 1, 1, 3)
-
-        horizontalLayout_2 = QHBoxLayout()
-
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        horizontalLayout_2.addItem(spacer)
-
-        self.label_last_updated = QLabel("Last updated: never", self)
-        horizontalLayout_2.addWidget(self.label_last_updated)
-
-        self.refresh_btn = QToolButton(self)
-        self.refresh_btn.setToolTip("Refresh")
-        self.refresh_btn.setIcon(QIcon(os.path.join(ICONS_DIR, "refresh.svg")))
-        self.refresh_btn.setIconSize(QSize(18, 18))
-        horizontalLayout_2.addWidget(self.refresh_btn)
-
-        gridLayout.addLayout(horizontalLayout_2, 2, 1, 1, 3)
+        self.tv_sim_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tv_sim_tree.customContextMenuRequested.connect(self.menuRequested)
+        gridLayout.addWidget(self.tv_sim_tree, 0, 1, 1, 3)
 
         self.horizontalLayout = QHBoxLayout()
 
-        self.pb_hide = QPushButton("Cancel", self)
-        self.pb_hide.setMinimumSize(0, 30)
-        self.horizontalLayout.addWidget(self.pb_hide)
+        self.refresh_btn = QPushButton(
+            QIcon(os.path.join(ICONS_DIR, "refresh.svg")), "Update table", self
+        )
+        self.refresh_btn.setMinimumSize(0, 30)
+        self.horizontalLayout.addWidget(self.refresh_btn)
 
-        self.pb_stop_sim = QPushButton("Stop Simulation", self)
-        self.pb_stop_sim.setMinimumSize(0, 30)
-        self.horizontalLayout.addWidget(self.pb_stop_sim)
+        self.label_last_updated = QLabel("Last updated: never", self)
+        self.horizontalLayout.addWidget(self.label_last_updated)
+
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacer)
 
         self.pb_new_sim = QPushButton("New Simulation", self)
         self.pb_new_sim.setMinimumSize(0, 30)
         self.pb_new_sim.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.horizontalLayout.addWidget(self.pb_new_sim)
 
-        gridLayout.addLayout(self.horizontalLayout, 3, 1, 1, 3)
+        gridLayout.addLayout(self.horizontalLayout, 1, 1, 1, 3)
 
         self.setTabOrder(self.tv_sim_tree, self.refresh_btn)
-        self.setTabOrder(self.refresh_btn, self.pb_hide)
-        self.setTabOrder(self.pb_hide, self.pb_stop_sim)
-        self.setTabOrder(self.pb_stop_sim, self.pb_new_sim)
+        self.setTabOrder(self.refresh_btn, self.pb_new_sim)
 
         self.threedi_api = threedi_api
         self.current_user = current_user
@@ -131,13 +116,7 @@ class SimulationOverviewDialog(QDialog):
         self.setup_view_model()
 
         self.pb_new_sim.clicked.connect(self.new_wizard_init)
-        self.pb_stop_sim.clicked.connect(self.stop_simulation)
-        self.pb_hide.clicked.connect(self.reject)
         self.refresh_btn.clicked.connect(self.refresh_running_simulations_list)
-
-        self.label_user.setText(
-            f"{self.current_user['first_name']} {self.current_user['last_name']}"
-        )
 
     def setup_view_model(self):
         """Setting up model and columns for TreeView."""
@@ -154,6 +133,16 @@ class SimulationOverviewDialog(QDialog):
         self.label_last_updated.setText(
             f"Last updated: {datetime.now().strftime(USER_DATETIME_FORMAT)}"
         )
+
+    def menuRequested(self, pos):
+        index = self.tv_sim_tree.indexAt(pos)
+        menu = QMenu(self)
+        action_stop = QAction("Stop simulation", self)
+        action_stop.triggered.connect(
+            lambda _, sel_index=index: self.stop_simulation(sel_index)
+        )
+        menu.addAction(action_stop)
+        menu.popup(self.tv_sim_tree.viewport().mapToGlobal(pos))
 
     def refresh_running_simulations_list(self):
         """Refresh running simulations list."""
@@ -335,9 +324,8 @@ class SimulationOverviewDialog(QDialog):
         )
         self.simulation_runner_pool.start(simulations_runner)
 
-    def stop_simulation(self):
+    def stop_simulation(self, index):
         """Sending request to shut down currently selected simulation."""
-        index = self.tv_sim_tree.currentIndex()
         if not index.isValid():
             return
         title = "Warning"
