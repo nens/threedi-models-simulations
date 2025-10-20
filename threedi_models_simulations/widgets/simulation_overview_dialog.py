@@ -1,11 +1,7 @@
 import os
 from datetime import datetime
 
-from qgis.PyQt.QtCore import (
-    QSize,
-    Qt,
-    QThreadPool,
-)
+from qgis.PyQt.QtCore import QSize, Qt, QThreadPool, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -49,6 +45,8 @@ class SimulationOverviewDialog(QDialog):
 
     PROGRESS_COLUMN_IDX = 2
     MAX_THREAD_COUNT = 1
+
+    refresh_requested = pyqtSignal()
 
     def __init__(
         self,
@@ -170,6 +168,7 @@ class SimulationOverviewDialog(QDialog):
         # Is this necessary?
         # self.plugin_dock.simulations_progresses_sentinel.progresses_fetched.connect(self.update_progress)
         # self.plugin_dock.simulations_progresses_sentinel.start_listening()
+        self.refresh_requested.emit()
 
     def add_simulation_to_model(self, sim_id, sim_data):
         """Method for adding simulation to the model."""

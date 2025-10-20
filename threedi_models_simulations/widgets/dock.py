@@ -181,6 +181,10 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.simulations_progresses_sentinel.progresses_fetched.connect(
             simulation_overview_dlg.update_progress
         )
+        simulation_overview_dlg.refresh_requested.connect(
+            self.simulations_progresses_sentinel.start_listening
+        )
+
         simulation_overview_dlg.exec()
 
     def load_local_schematisation(
