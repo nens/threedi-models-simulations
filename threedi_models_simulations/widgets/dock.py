@@ -18,6 +18,9 @@ from threedi_models_simulations.widgets.schematisation_upload_dialog import (
     SchematisationUploadDialog,
 )
 from threedi_models_simulations.widgets.settings import wss_url
+from threedi_models_simulations.widgets.simulation_overview_dialog import (
+    SimulationOverviewDialog,
+)
 from threedi_models_simulations.widgets.simulation_results_dialog import (
     SimulationResultDialog,
 )
@@ -80,6 +83,7 @@ class DockWidget(QDockWidget, FORM_CLASS):
         self.btn_new.clicked.connect(self.new_schematisation)
         self.btn_manage.clicked.connect(self.on_manage)
         self.btn_results.clicked.connect(self.show_simulation_results)
+        self.btn_simulate.clicked.connect(self.show_simulation_overview)
 
     def on_log_in_log_out(self):
         """Trigger log-in or log-out action."""
@@ -150,6 +154,34 @@ class DockWidget(QDockWidget, FORM_CLASS):
             self.simulations_progresses_sentinel.run
         )
         self.simulations_progresses_thread.start()
+
+    def start_simulation(self):
+        # pass it a model
+        # s = Simulation()
+
+        # wiz = SimulationWizard(self.dockwidget)
+        # wiz.exec()
+
+        # pass the model to a sender
+        pass
+
+    @login_required
+    def show_simulation_overview(self, *args, **kwargs):
+        working_dir = QSettings().value("threedi/working_dir", "")
+        simulation_overview_dlg = SimulationOverviewDialog(
+            self.communication,
+            self.threedi_api,
+            self.current_user_info,
+            self.current_local_schematisation,
+            self.organisations,
+            working_dir,
+            self,
+        )
+
+        self.simulations_progresses_sentinel.progresses_fetched.connect(
+            simulation_overview_dlg.update_progress
+        )
+        simulation_overview_dlg.exec()
 
     def load_local_schematisation(
         self,

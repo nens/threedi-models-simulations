@@ -103,6 +103,19 @@ class SimulationStatusName(Enum):
     STOPPED = "stopped"
 
 
+class RainEventTypes(Enum):
+    CONSTANT = "Constant"
+    FROM_CSV = "From CSV"
+    FROM_NETCDF = "From NetCDF"
+    DESIGN = "Design"
+    RADAR = "Radar - NL Only"
+
+
+class WindEventTypes(Enum):
+    CONSTANT = "Constant"
+    CUSTOM = "Custom"
+
+
 class FileState(Enum):
     """Possible uploaded file states."""
 
@@ -111,6 +124,26 @@ class FileState(Enum):
     PROCESSED = "processed"
     ERROR = "error"
     REMOVED = "removed"
+
+
+class ThreediFileState(Enum):
+    """Possible 3Di file states."""
+
+    PROCESSING = "processing"
+    VALID = "valid"
+    INVALID = "invalid"
+
+
+class ThreediModelTaskStatus(Enum):
+    """Possible 3Di Model Task statuses."""
+
+    PENDING = "pending"
+    SENT = "sent"
+    RECEIVED = "received"
+    STARTED = "started"
+    SUCCESS = "success"
+    FAILURE = "failure"
+    REVOKED = "revoked"
 
 
 class UploadFileType(Enum):
@@ -345,6 +378,13 @@ def fetch_model_gridadmin_download(
     return result_file, download
 
 
+def fetch_model_geojson_breaches_download(
+    threedi_api, threedimodel_id: int
+) -> Download:
+    """Fetch model geojson breaches Download object."""
+    return threedi_api.threedimodels_geojson_breaches_download(threedimodel_id)
+
+
 def fetch_model_geopackage_download(
     threedi_api, threedimodel_id: int
 ) -> Tuple[ResultFile, Download]:
@@ -532,6 +572,11 @@ def fetch_contracts(threedi_api, **data) -> List[Contract]:
     return paginated_fetch(threedi_api.contracts_list, **data)
 
 
+def create_simulation_action(threedi_api, simulation_pk: int, **action_data) -> Action:
+    """Make an action on 'simulation_pk' simulation."""
+    return threedi_api.simulations_actions_create(str(simulation_pk), action_data)
+
+
 def fetch_simulations(threedi_api) -> List[Simulation]:
     """Fetch all simulations available for current user."""
     return paginated_fetch(
@@ -563,6 +608,44 @@ def fetch_simulation_statuses(threedi_api, **params) -> List[SimulationStatus]:
     params["created__date__gt"] = expiration_date()
     statuses = paginated_fetch(threedi_api.statuses_list, **params)
     return statuses
+
+
+def fetch_simulation_settings_overview(
+    threedi_api, simulation_pk: str
+) -> SimulationSettingsOverview:
+    """Get a simulation settings overview."""
+    return threedi_api.simulations_settings_overview(simulation_pk=simulation_pk)
+
+
+def fetch_simulation_events(threedi_api, simulation_pk: int) -> Event:
+    """Get a simulation events collection."""
+    return threedi_api.simulations_events(id=simulation_pk)
+
+
+def fetch_simulation_lizard_postprocessing_overview(
+    threedi_api, simulation_pk: int
+) -> PostProcessingOverview:
+    """Get a simulation lizard postprocessing overview."""
+    return threedi_api.simulations_results_post_processing_lizard_overview_list(
+        str(simulation_pk)
+    )
+
+
+def fetch_simulation_templates_with_count(
+    threedi_api, simulation_pk: int = None, limit: int = None, offset: int = None
+) -> Tuple[List[Template], int]:
+    """Get list of the simulation templated with count."""
+    params = {}
+    if simulation_pk is not None:
+        params["simulation__threedimodel__id"] = simulation_pk
+    if limit is not None:
+        params["limit"] = limit
+    if offset is not None:
+        params["offset"] = offset
+    response = threedi_api.simulation_templates_list(**params)
+    simulation_templates_list = response.results
+    simulation_templates_count = response.count
+    return simulation_templates_list, simulation_templates_count
 
 
 class SchematisationApiMapper:

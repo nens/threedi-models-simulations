@@ -2,6 +2,7 @@ import base64
 import json
 import time
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QByteArray, QObject, QUrl, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 from threedi_api_client.openapi import ApiException
@@ -84,11 +85,14 @@ class SimulationProgressWorker(QObject):
             QByteArray().append("Authorization"), QByteArray().append(basic_auth_token)
         )
         try:
-            from qgis.PyQt import QtWebSockets
+            # It seems QtWebSockets is not packaged with Qgis so we need to explicitly import it from the PyQt5 namespace
+            from PyQt5 import QtWebSockets
         except ImportError:
             QtWebSockets = None
         if QtWebSockets is None:
+            QgsMessageLog.logMessage("No websockets available", level=Qgis.Critical)
             return
+
         self.ws_client = QtWebSockets.QWebSocket(
             version=QtWebSockets.QWebSocketProtocol.VersionLatest
         )

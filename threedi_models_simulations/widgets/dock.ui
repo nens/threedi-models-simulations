@@ -151,7 +151,7 @@
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <widget class="QPushButton" name="pushButton_simulate">
+        <widget class="QPushButton" name="btn_simulate">
          <property name="text">
           <string>Simulate</string>
          </property>

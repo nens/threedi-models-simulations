@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -6,6 +7,7 @@ import warnings
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import requests
 from qgis.core import QgsVectorLayer
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QLocale, QSettings
@@ -25,6 +27,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.utils import plugins
 
 from threedi_models_simulations.communication import progress_bar_callback_factory
+from threedi_models_simulations.constants import DOWNLOAD_CHUNK_SIZE
 
 
 def is_writable(working_dir: str) -> bool:
@@ -338,3 +341,45 @@ def translate_illegal_chars(
         for char in text
     )
     return sanitized_text
+
+
+def upload_local_file(upload, filepath):
+    """Upload file."""
+    with open(filepath, "rb") as file:
+        response = requests.put(upload.put_url, data=file)
+        return response
+
+
+def read_json_data(json_filepath):
+    """Parse and return data from JSON file."""
+    with open(json_filepath, "r+") as json_file:
+        data = json.load(json_file)
+        return data
+
+
+def write_json_data(values, json_file_template):
+    """Writing data to the JSON file."""
+    with open(json_file_template, "w") as json_file:
+        jsonf = json.dumps(values)
+        json_file.write(jsonf)
+
+
+def get_download_file(download, file_path):
+    """Getting file from Download object and writing it under given path."""
+    r = requests.get(download.get_url, stream=True, timeout=15)
+    with open(file_path, "wb") as f:
+        for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
+            if chunk:
+                f.write(chunk)
+
+
+def style_path(qml_filename):
+    """Setting up path to the QML style with given filename."""
+    path = os.path.join(os.path.dirname(__file__), "styles", qml_filename)
+    return path
+
+
+def set_named_style(layer, qml_filename):
+    """Set QML style to the vector layer."""
+    qml_path = style_path(qml_filename)
+    layer.loadNamedStyle(qml_path)

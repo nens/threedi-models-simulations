@@ -1,7 +1,6 @@
 from collections import defaultdict
 from operator import attrgetter
 
-from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QSettings, QSize
 from qgis.PyQt.QtWidgets import QSizePolicy, QWizard
 from threedi_api_client.openapi import SchematisationRevision
@@ -97,8 +96,6 @@ class SchematisationUploadWizard(QWizard):
         self.new_upload["make_3di_model"] = self.field("make_3di_model")
         # TODO: rename this later (also in UploadWorker)
         self.new_upload["cb_inherit_templates"] = self.field("inherit_templates")
-
-        QgsMessageLog.logMessage(str(self.new_upload), level=Qgis.Critical)
 
     def cancel_wizard(self):
         """Handling canceling wizard action."""

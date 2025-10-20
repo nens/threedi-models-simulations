@@ -1,16 +1,13 @@
-from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QAction
 from qgis.PyQt.QtWidgets import QMessageBox
 
-from threedi_models_simulations.constants import LOGO_ICON, PLUGIN_ICON, PLUGIN_NAME
-from threedi_models_simulations.models.simulation import Simulation
+from threedi_models_simulations.constants import PLUGIN_ICON, PLUGIN_NAME
 from threedi_models_simulations.widgets.dock import DockWidget
 from threedi_models_simulations.widgets.settings import (
     SettingsDialog,
     settings_are_valid,
 )
-from threedi_models_simulations.widgets.wizard import SimulationWizard
 
 
 class ModelsSimulationsPlugin:
@@ -41,14 +38,6 @@ class ModelsSimulationsPlugin:
             parent=self.iface.mainWindow(),
             add_to_toolbar=False,
         )
-
-    def start_simulation_wizard(self):
-        # pass it a model
-        # s = Simulation()
-        wiz = SimulationWizard(self.dockwidget)
-        wiz.exec()
-
-        # pass the model to a sender
 
     def unload(self):
         self.dockwidget.setVisible(False)

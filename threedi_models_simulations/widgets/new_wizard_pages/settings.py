@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
-from qgis.core import Qgis, QgsMessageLog, QgsRasterLayer, QgsUnitTypes
+from qgis.core import QgsRasterLayer, QgsUnitTypes
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor, QPalette
@@ -724,7 +724,6 @@ class SchematisationSettingsWidget(QWidget):
             remove_postfix=False,
             lineedits_as_float_or_none=False,
         )
-        QgsMessageLog.logMessage(str(user_settings), level=Qgis.Critical)
         crs = user_settings["crs"]
         epsg = crs.authid()
         user_settings["epsg_code"] = int(epsg.split(":")[-1]) if epsg else 0
@@ -790,7 +789,6 @@ class SchematisationSettingsWidget(QWidget):
             max_degree = 5
         user_settings["max_degree_gauss_seidel"] = max_degree
 
-        QgsMessageLog.logMessage(str(user_settings), level=Qgis.Critical)
         return user_settings
 
     def raster_filepaths(self):
