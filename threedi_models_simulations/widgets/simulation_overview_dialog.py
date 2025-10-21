@@ -32,6 +32,7 @@ from threedi_models_simulations.widgets.simulation_results_dialog import (
     API_DATETIME_FORMAT,
     USER_DATETIME_FORMAT,
 )
+from threedi_models_simulations.widgets.simulation_wizard import SimulationWizard
 from threedi_models_simulations.widgets.utils.simulation_progress_delegate import (
     PROGRESS_ROLE,
     SimulationProgressDelegate,
@@ -239,8 +240,7 @@ class SimulationOverviewDialog(QDialog):
         )
 
         if model_selection_dlg.exec() == QDialog.DialogCode.Accepted:
-            simulation_template = self.model_selection_dlg.current_simulation_template
-
+            simulation_template = model_selection_dlg.current_simulation_template
             (
                 simulation,
                 settings_overview,
@@ -248,20 +248,13 @@ class SimulationOverviewDialog(QDialog):
                 lizard_post_processing_overview,
             ) = self.get_simulation_data_from_template(simulation_template)
 
-            # TODO
-            # self.simulation_init_wizard = SimulationInit(
-            #     self.model_selection_dlg.current_model,
-            #     simulation_template,
-            #     settings_overview,
-            #     events,
-            #     lizard_post_processing_overview,
-            #     organisation=self.model_selection_dlg.organisation,
-            #     api=self.threedi_api,
-            #     parent=self,
-            # )
-            # self.simulation_init_wizard.exec()
-            # if self.simulation_init_wizard.open_wizard:
-            #     self.new_simulation_wizard(simulation, settings_overview, events, lizard_post_processing_overview)
+            self.new_simulation_wizard(
+                simulation,
+                settings_overview,
+                events,
+                lizard_post_processing_overview,
+                simulation_template,
+            )
 
     def get_simulation_data_from_template(self, template):
         """Fetching simulation, settings and events data from the simulation template."""
@@ -274,13 +267,17 @@ class SimulationOverviewDialog(QDialog):
         try:
             simulation = template.simulation
             sim_id = simulation.id
-            settings_overview = fetch_simulation_settings_overview(str(sim_id))
-            events = fetch_simulation_events(sim_id)
+            settings_overview = fetch_simulation_settings_overview(
+                self.threedi_api, str(sim_id)
+            )
+            events = fetch_simulation_events(self.threedi_api, sim_id)
             cloned_from_url = simulation.cloned_from
             if cloned_from_url:
                 source_sim_id = cloned_from_url.strip("/").split("/")[-1]
                 lizard_post_processing_overview = (
-                    fetch_simulation_lizard_postprocessing_overview(source_sim_id)
+                    fetch_simulation_lizard_postprocessing_overview(
+                        self.threedi_api, source_sim_id
+                    )
                 )
         except ApiException as e:
             error_msg = extract_error_message(e)
@@ -292,9 +289,33 @@ class SimulationOverviewDialog(QDialog):
         return simulation, settings_overview, events, lizard_post_processing_overview
 
     def new_simulation_wizard(
-        self, simulation, settings_overview, events, lizard_post_processing_overview
+        self,
+        simulation,
+        settings_overview,
+        events,
+        lizard_post_processing_overview,
+        simulation_template,
     ):
         """Opening a wizard which allows defining and running new simulations."""
+        # pass it a model
+        # s = Simulation()
+
+        wiz = SimulationWizard(self)
+        wiz.exec()
+
+        # pass the model to a sender
+
+        # self.simulation_init_wizard = SimulationInit(
+        #     self.model_selection_dlg.current_model,
+        #     simulation_template,
+        #     settings_overview,
+        #     events,
+        #     lizard_post_processing_overview,
+        #     organisation=self.model_selection_dlg.organisation,
+        #     api=self.threedi_api,
+        #     parent=self,
+        # )
+
         # self.simulation_wizard = SimulationWizard(
         #     self.plugin_dock, self.model_selection_dlg, self.simulation_init_wizard
         # )

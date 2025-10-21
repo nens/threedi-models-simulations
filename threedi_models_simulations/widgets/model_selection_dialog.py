@@ -510,6 +510,7 @@ class ModelSelectionDialog(QDialog):
             )
             self.current_simulation_template = self.get_selected_template()
             self.model_is_loaded = True
+            self.accept()
         self.close()
 
     def get_selected_model(self):

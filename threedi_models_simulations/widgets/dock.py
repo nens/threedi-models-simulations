@@ -155,16 +155,6 @@ class DockWidget(QDockWidget, FORM_CLASS):
         )
         self.simulations_progresses_thread.start()
 
-    def start_simulation(self):
-        # pass it a model
-        # s = Simulation()
-
-        # wiz = SimulationWizard(self.dockwidget)
-        # wiz.exec()
-
-        # pass the model to a sender
-        pass
-
     @login_required
     def show_simulation_overview(self, *args, **kwargs):
         working_dir = QSettings().value("threedi/working_dir", "")
