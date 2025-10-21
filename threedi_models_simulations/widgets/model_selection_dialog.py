@@ -98,7 +98,8 @@ class ModelSelectionDialog(QDialog):
         self.current_local_schematisation = current_local_schematisation
 
         self.setWindowTitle("Select a model and simulation template")
-        self.setGeometry(0, 0, 900, 650)
+        self.setMinimumSize(900, 650)
+        self.resize(900, 650)
         self.setFocusPolicy(Qt.StrongFocus)
 
         gridLayout = QGridLayout(self)
