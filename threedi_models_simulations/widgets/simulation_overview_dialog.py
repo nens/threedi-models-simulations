@@ -117,6 +117,10 @@ class SimulationOverviewDialog(QDialog):
         self.pb_new_sim.clicked.connect(self.new_wizard_init)
         self.refresh_btn.clicked.connect(self.refresh_running_simulations_list)
 
+    def exec(self):
+        self.refresh_running_simulations_list()
+        return super().exec()
+
     def setup_view_model(self):
         """Setting up model and columns for TreeView."""
         delegate = SimulationProgressDelegate(self.tv_sim_tree)
