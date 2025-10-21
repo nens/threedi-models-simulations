@@ -315,5 +315,5 @@ class DockWidget(QDockWidget, FORM_CLASS):
             self.simulations_progresses_sentinel.stop_listening()
 
     def unload(self):
-        self.on_log_out()
         self.terminate_fetching_simulations_progresses_thread()
+        self.on_log_out()

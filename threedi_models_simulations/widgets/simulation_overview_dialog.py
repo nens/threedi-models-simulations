@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
 
-from qgis.PyQt.QtCore import Qt, QThreadPool, pyqtSignal
+from qgis.core import Qgis, QgsApplication, QgsMessageLog
+from qgis.PyQt.QtCore import QObject, Qt, QThreadPool, pyqtSignal
 from qgis.PyQt.QtGui import QAction, QColor, QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -301,7 +302,18 @@ class SimulationOverviewDialog(QDialog):
         # s = Simulation()
 
         wiz = SimulationWizard(self)
-        wiz.exec()
+
+        # This is hack to be able to add hyperlinks in QWizard subtitle (for this we need
+        # to find the QLabel holding the subtitle, but this is only created after showing the widget)
+        wiz.show()
+        QgsApplication.instance().processEvents()
+        for label in self.findChildren(QLabel):
+            if "href" in str(label.text()):
+                label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                label.setOpenExternalLinks(True)
+
+        if wiz.exec() == QDialog.DialogCode.Accepted:
+            QgsMessageLog.logMessage("ACCEPT", level=Qgis.Critical)
 
         # pass the model to a sender
 
@@ -325,7 +337,6 @@ class SimulationOverviewDialog(QDialog):
         #     )
         # self.close()
         # self.simulation_wizard.exec()
-        pass
 
     def start_simulations(self, simulations_to_run):
         """Start the simulations."""
