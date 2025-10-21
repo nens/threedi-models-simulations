@@ -26,9 +26,9 @@ from qgis.PyQt.QtWidgets import (
     QSpinBox,
     QToolButton,
     QTreeView,
-    QVBoxLayout,
     QWidget,
 )
+from qgis.utils import iface
 from threedi_api_client.openapi import ApiException
 from threedi_mi_utils import LocalSchematisation, list_local_schematisations
 
@@ -85,6 +85,7 @@ class ModelSelectionDialog(QDialog):
         threedi_api,
         organisations,
         working_dir,
+        current_local_schematisation,
         parent,
     ):
         super().__init__(parent)
@@ -94,8 +95,9 @@ class ModelSelectionDialog(QDialog):
         self.threedi_api = threedi_api
         self.organisations = organisations
         self.working_dir = working_dir
+        self.current_local_schematisation = current_local_schematisation
 
-        self.setWindowTitle("Choose model and simulation template")
+        self.setWindowTitle("Select a model and simulation template")
         self.setGeometry(0, 0, 900, 650)
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -148,14 +150,7 @@ class ModelSelectionDialog(QDialog):
         gridLayout_8.addWidget(self.templates_tv, 6, 0, 1, 2)
 
         templates_label_layout = QHBoxLayout()
-        templates_label_layout.addWidget(QLabel("Available simulation templates"))
-
-        self.refresh_btn = QToolButton()
-        self.refresh_btn.setToolTip("Refresh")
-        self.refresh_btn.setIconSize(QSize(18, 18))
-        self.refresh_btn.setIcon(QIcon(os.path.join(ICONS_DIR, "refresh.svg")))
-
-        templates_label_layout.addWidget(self.refresh_btn)
+        templates_label_layout.addWidget(QLabel("Simulation templates"))
 
         gridLayout_8.addLayout(templates_label_layout, 5, 0, 1, 2)
 
@@ -204,9 +199,12 @@ class ModelSelectionDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.pb_cancel_load = QPushButton("Cancel")
-        self.pb_cancel_load.setMinimumSize(100, 30)
-        button_layout.addWidget(self.pb_cancel_load)
+        self.refresh_btn = QPushButton(
+            QIcon(os.path.join(ICONS_DIR, "refresh.svg")), "Update table", self
+        )
+        self.refresh_btn.setMinimumSize(0, 30)
+
+        button_layout.addWidget(self.refresh_btn)
         button_layout.addSpacerItem(
             QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         )
@@ -216,7 +214,7 @@ class ModelSelectionDialog(QDialog):
         self.pb_load.setEnabled(False)
         button_layout.addWidget(self.pb_load)
 
-        gridLayout_8.addLayout(self.button_layout, 11, 0, 1, 2)
+        gridLayout_8.addLayout(button_layout, 11, 0, 1, 2)
         gridLayout.addWidget(self.model_selection_widget, 0, 0)
 
         self.local_schematisations = list_local_schematisations(
@@ -237,12 +235,14 @@ class ModelSelectionDialog(QDialog):
         self.proxy_models_model.setSourceModel(self.source_models_model)
         self.models_tv.setModel(self.proxy_models_model)
         self.templates_model = QStandardItemModel()
+        self.templates_model.setHorizontalHeaderLabels(
+            ["ID", "Template name", "Created at"]
+        )
         self.templates_tv.setModel(self.templates_model)
         self.pb_prev_page.clicked.connect(self.move_models_backward)
         self.pb_next_page.clicked.connect(self.move_models_forward)
         self.page_sbox.valueChanged.connect(self.fetch_3di_models)
         self.pb_load.clicked.connect(self.load_model)
-        self.pb_cancel_load.clicked.connect(self.cancel_load_model)
         self.search_le.returnPressed.connect(self.search_model)
         self.models_tv.selectionModel().selectionChanged.connect(
             self.refresh_templates_list
@@ -256,13 +256,23 @@ class ModelSelectionDialog(QDialog):
             partial(save_3di_settings, "threedi/last_used_organisation")
         )
 
+        self.refresh_btn.clicked.connect(self.fetch_3di_models)
         self.refresh_btn.clicked.connect(self.refresh_templates_list)
+
         self.search_le.setFocus()
+
+        if self.current_local_schematisation is not None:
+            self.search_le.setText(self.current_local_schematisation.name)
+            self.fetch_3di_models()
+            self.refresh_templates_list()
 
     def refresh_templates_list(self):
         """Refresh simulation templates list if any model is selected."""
         selection_model = self.models_tv.selectionModel()
         self.templates_model.clear()
+        self.templates_model.setHorizontalHeaderLabels(
+            ["ID", "Template name", "Created at"]
+        )
         self.templates_page_sbox.setMaximum(1)
         self.templates_page_sbox.setSuffix(" / 1")
         if selection_model.hasSelection():
@@ -347,7 +357,7 @@ class ModelSelectionDialog(QDialog):
                 "Model",
                 "Schematisation",
                 "Revision",
-                "Last updated",
+                "Updated at",
                 "Updated by",
             ]
             self.source_models_model.setHorizontalHeaderLabels(header)
@@ -364,7 +374,7 @@ class ModelSelectionDialog(QDialog):
                 rev_item.setData(int(rev_number), role=Qt.DisplayRole)
                 last_updated_day = sim_model.revision_commit_date.split("T")[0]
                 lu_datetime = QDateTime.fromString(last_updated_day, "yyyy-MM-dd")
-                lu_item = QStandardItem(lu_datetime.toString("dd-MMMM-yyyy"))
+                lu_item = QStandardItem(lu_datetime.toString("MMMM dd, yyyy"))
                 ub_item = QStandardItem(sim_model.user)
                 self.source_models_model.appendRow(
                     [id_item, name_item, schema_item, rev_item, lu_item, ub_item]
@@ -391,14 +401,14 @@ class ModelSelectionDialog(QDialog):
             self.templates_page_sbox.setMaximum(pages_nr)
             self.templates_page_sbox.setSuffix(f" / {pages_nr}")
             self.templates_model.clear()
-            header = ["Template ID", "Template name", "Creation date"]
+            header = ["ID", "Template name", "Created at"]
             self.templates_model.setHorizontalHeaderLabels(header)
             for template in sorted(templates, key=attrgetter("id"), reverse=True):
                 id_item = QStandardItem(str(template.id))
                 name_item = QStandardItem(template.name)
                 name_item.setData(template, role=Qt.UserRole)
                 creation_date = (
-                    template.created.strftime("%d-%m-%Y") if template.created else ""
+                    template.created.strftime(r"%B %d, %Y") if template.created else ""
                 )
                 creation_date_item = QStandardItem(creation_date)
                 self.templates_model.appendRow([id_item, name_item, creation_date_item])
@@ -462,8 +472,7 @@ class ModelSelectionDialog(QDialog):
             if self.flowlines_layer is not None:
                 QgsProject.instance().removeMapLayer(self.flowlines_layer)
                 self.flowlines_layer = None
-            # TODO
-            self.plugin_dock.iface.mapCanvas().refresh()
+            iface.mapCanvas().refresh()
         except (AttributeError, RuntimeError):
             pass
 
@@ -500,12 +509,6 @@ class ModelSelectionDialog(QDialog):
             )
             self.current_simulation_template = self.get_selected_template()
             self.model_is_loaded = True
-        self.close()
-
-    def cancel_load_model(self):
-        """Cancel loading model."""
-        self.current_simulation_template = None
-        self.model_is_loaded = False
         self.close()
 
     def get_selected_model(self):

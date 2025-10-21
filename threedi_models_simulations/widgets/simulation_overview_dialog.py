@@ -106,7 +106,6 @@ class SimulationOverviewDialog(QDialog):
 
         self.simulation_runner_pool = QThreadPool()
         self.simulation_runner_pool.setMaxThreadCount(self.MAX_THREAD_COUNT)
-        self.model_selection_dlg = None
         self.simulation_init_wizard = None
         self.simulation_wizard = None
         self.running_simulations = {}
@@ -225,23 +224,19 @@ class SimulationOverviewDialog(QDialog):
 
     def new_wizard_init(self):
         """Open new simulation initiation options dialog."""
-        self.model_selection_dlg = ModelSelectionDialog(
+        model_selection_dlg = ModelSelectionDialog(
             self.communication,
             self.current_user,
             self.threedi_api,
             self.organisations,
             self.working_dir,
+            self.current_local_schematisation,
             self,
         )
-        if self.current_local_schematisation is not None:
-            self.model_selection_dlg.search_le.setText(
-                self.current_local_schematisation.name
-            )
-            self.model_selection_dlg.fetch_3di_models()
-            self.model_selection_dlg.refresh_templates_list()
-        self.model_selection_dlg.exec()
-        if self.model_selection_dlg.model_is_loaded:
+
+        if model_selection_dlg.exec() == QDialog.DialogCode.Accepted:
             simulation_template = self.model_selection_dlg.current_simulation_template
+
             (
                 simulation,
                 settings_overview,
