@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from qgis.core import Qgis, QgsApplication, QgsMessageLog
-from qgis.PyQt.QtCore import QObject, Qt, QThreadPool, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QThreadPool, pyqtSignal
 from qgis.PyQt.QtGui import QAction, QColor, QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -26,6 +26,7 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_simulation_lizard_postprocessing_overview,
     fetch_simulation_settings_overview,
 )
+from threedi_models_simulations.utils.model import load_template_in_model
 from threedi_models_simulations.widgets.model_selection_dialog import (
     ModelSelectionDialog,
 )
@@ -298,17 +299,17 @@ class SimulationOverviewDialog(QDialog):
         simulation_template,
     ):
         """Opening a wizard which allows defining and running new simulations."""
-        # pass it a model
-        # s = Simulation()
 
-        wiz = SimulationWizard(
+        # Load the template simulation settings in the model
+        new_sim = load_template_in_model(
             simulation,
             settings_overview,
             events,
             lizard_post_processing_overview,
             simulation_template,
-            self,
         )
+
+        wiz = SimulationWizard(new_sim, self)
 
         # This is hack to be able to add hyperlinks in QWizard subtitle (for this we need
         # to find the QLabel holding the subtitle, but this is only created after showing the widget)

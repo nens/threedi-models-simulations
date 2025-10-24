@@ -27,11 +27,15 @@ from threedi_models_simulations.threedi_api_utils import (
     download_schematisation_revision_sqlite,
     fetch_schematisation_revision_rasters,
 )
-from threedi_models_simulations.utils import (
-    geopackage_layer,
-    get_filepath,
+from threedi_models_simulations.utils.file import (
     is_file_checksum_equal,
     zip_into_archive,
+)
+from threedi_models_simulations.utils.general import (
+    get_filepath,
+)
+from threedi_models_simulations.utils.qgis import (
+    geopackage_layer,
 )
 
 

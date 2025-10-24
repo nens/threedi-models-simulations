@@ -26,7 +26,7 @@ from threedi_models_simulations.threedi_api_utils import (
     upload_schematisation_revision,
     upload_schematisation_revision_raster,
 )
-from threedi_models_simulations.utils import zip_into_archive
+from threedi_models_simulations.utils.file import zip_into_archive
 
 
 class RevisionUploadError(Exception):

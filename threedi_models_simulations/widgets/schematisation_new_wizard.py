@@ -17,7 +17,8 @@ from threedi_models_simulations.threedi_api_utils import (
     create_schematisation,
     extract_error_message,
 )
-from threedi_models_simulations.utils import ensure_valid_schema, geopackage_layer
+from threedi_models_simulations.utils.general import ensure_valid_schema
+from threedi_models_simulations.utils.qgis import geopackage_layer
 from threedi_models_simulations.widgets.new_wizard_pages.explain import (
     SchematisationExplainPage,
 )

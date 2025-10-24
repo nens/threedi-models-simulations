@@ -22,7 +22,7 @@ from qgis.PyQt.QtWidgets import (
     QWizardPage,
 )
 
-from threedi_models_simulations.utils import scan_widgets_parameters
+from threedi_models_simulations.utils.general import scan_widgets_parameters
 
 
 class SchematisationSettingsPage(QWizardPage):

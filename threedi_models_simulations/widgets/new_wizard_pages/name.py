@@ -14,7 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QWizardPage,
 )
 
-from threedi_models_simulations.utils import get_filepath
+from threedi_models_simulations.utils.general import get_filepath
 from threedi_models_simulations.widgets.settings import (
     read_3di_settings,
     save_3di_settings,

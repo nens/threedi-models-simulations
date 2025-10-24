@@ -1,14 +1,11 @@
-import hashlib
 import json
 import os
 import re
 import shutil
 import warnings
 from uuid import uuid4
-from zipfile import ZIP_DEFLATED, ZipFile
 
 import requests
-from qgis.core import QgsVectorLayer
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QLocale, QSettings
 from qgis.PyQt.QtWidgets import (
@@ -24,72 +21,9 @@ from qgis.PyQt.QtWidgets import (
     QTimeEdit,
     QWidget,
 )
-from qgis.utils import plugins
 
 from threedi_models_simulations.communication import progress_bar_callback_factory
 from threedi_models_simulations.constants import DOWNLOAD_CHUNK_SIZE
-
-
-def is_writable(working_dir: str) -> bool:
-    """Try to write and remove an empty text file into given location."""
-    try:
-        test_filename = f"{uuid4()}.txt"
-        test_file_path = os.path.join(working_dir, test_filename)
-        with open(test_file_path, "w") as test_file:
-            test_file.write("")
-        os.remove(test_file_path)
-    except (PermissionError, OSError):
-        return False
-    else:
-        return True
-
-
-def get_plugin_instance(plugin_name):
-    """Return given plugin name instance."""
-    try:
-        plugin_instance = plugins[plugin_name]
-    except (AttributeError, KeyError):
-        plugin_instance = None
-    return plugin_instance
-
-
-def get_schematisation_editor_instance():
-    """Return Schematisation Editor plugin instance."""
-    return get_plugin_instance("threedi_schematisation_editor")
-
-
-def is_loaded_in_schematisation_editor(local_schematisation_gpkg):
-    """Check if local schematisation revision is loaded in the Schematisation Editor."""
-    if local_schematisation_gpkg is None:
-        return None
-    local_schematisation_gpkg = os.path.normpath(local_schematisation_gpkg)
-    try:
-        schematisation_editor = plugins["threedi_schematisation_editor"]
-        return (
-            local_schematisation_gpkg
-            in schematisation_editor.workspace_context_manager.layer_managers
-        )
-    except KeyError:
-        return None
-
-
-def unzip_archive(zip_filepath, location=None):
-    """Unzip archive content."""
-    if not location:
-        location = os.path.dirname(zip_filepath)
-    with ZipFile(zip_filepath, "r") as zf:
-        content_list = zf.namelist()
-        zf.extractall(location)
-        return content_list
-
-
-def zip_into_archive(file_path, compression=ZIP_DEFLATED):
-    """Zip file."""
-    zip_filename = os.path.basename(file_path)
-    zip_filepath = file_path.rsplit(".", 1)[0] + ".zip"
-    with ZipFile(zip_filepath, "w", compression=compression) as zf:
-        zf.write(file_path, arcname=zip_filename)
-    return zip_filepath
 
 
 def migrate_schematisation_schema(schematisation_filepath, progress_callback=None):
@@ -155,14 +89,6 @@ def backup_schematisation_file(filename):
     return backup_file_path
 
 
-def geopackage_layer(gpkg_path, table_name, layer_name=None):
-    """Creating vector layer out of GeoPackage source."""
-    uri = f"{gpkg_path}|layername={table_name}"
-    layer_name = table_name if layer_name is None else layer_name
-    vlayer = QgsVectorLayer(uri, layer_name, "ogr")
-    return vlayer
-
-
 def get_filepath(
     parent, extension_filter=None, extension=None, save=False, dialog_title=None
 ):
@@ -198,14 +124,6 @@ def get_filepath(
         "threedi/last_schematisation_folder", os.path.dirname(file_name)
     )
     return file_name
-
-
-def is_file_checksum_equal(file_path, etag):
-    """Checking if etag (MD5 checksum) matches checksum calculated for a given file."""
-    with open(file_path, "rb") as file_to_check:
-        data = file_to_check.read()
-        md5_returned = hashlib.md5(data).hexdigest()
-        return etag == md5_returned
 
 
 def ensure_valid_schema(schematisation_filepath, communication):
@@ -332,17 +250,6 @@ def scan_widgets_parameters(
     return parameters
 
 
-def translate_illegal_chars(
-    text, illegal_characters=r'\/:*?"<>|', replacement_character="-"
-):
-    """Remove illegal characters from the text."""
-    sanitized_text = "".join(
-        char if char not in illegal_characters else replacement_character
-        for char in text
-    )
-    return sanitized_text
-
-
 def upload_local_file(upload, filepath):
     """Upload file."""
     with open(filepath, "rb") as file:
@@ -371,15 +278,3 @@ def get_download_file(download, file_path):
         for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
             if chunk:
                 f.write(chunk)
-
-
-def style_path(qml_filename):
-    """Setting up path to the QML style with given filename."""
-    path = os.path.join(os.path.dirname(__file__), "styles", qml_filename)
-    return path
-
-
-def set_named_style(layer, qml_filename):
-    """Set QML style to the vector layer."""
-    qml_path = style_path(qml_filename)
-    layer.loadNamedStyle(qml_path)

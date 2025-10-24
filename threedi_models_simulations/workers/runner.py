@@ -13,7 +13,7 @@ from threedi_models_simulations.threedi_api_utils import (
     WindEventTypes,
     extract_error_message,
 )
-from threedi_models_simulations.utils import (
+from threedi_models_simulations.utils.general import (
     get_download_file,
     upload_local_file,
     write_json_data,

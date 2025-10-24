@@ -24,7 +24,6 @@ from qgis.PyQt.QtWidgets import (
     QSizePolicy,
     QSpacerItem,
     QSpinBox,
-    QToolButton,
     QTreeView,
     QWidget,
 )
@@ -42,7 +41,7 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_simulation_templates_with_count,
     get_download_file,
 )
-from threedi_models_simulations.utils import set_named_style
+from threedi_models_simulations.utils.qgis import set_named_style
 from threedi_models_simulations.widgets.settings import (
     read_3di_settings,
     save_3di_settings,

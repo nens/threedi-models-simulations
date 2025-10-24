@@ -20,11 +20,11 @@ from qgis.PyQt.QtWidgets import (
 
 from threedi_models_simulations.communication import progress_bar_callback_factory
 from threedi_models_simulations.logging import LogLevels, TreeViewLogger
-from threedi_models_simulations.utils import (
-    geopackage_layer,
+from threedi_models_simulations.utils.general import (
     get_filepath,
     migrate_schematisation_schema,
 )
+from threedi_models_simulations.utils.qgis import geopackage_layer
 
 
 class CheckModelPage(QWizardPage):

@@ -5,7 +5,7 @@ from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 from threedi_mi_utils import bypass_max_path_limit
 
 from threedi_models_simulations.constants import DOWNLOAD_CHUNK_SIZE
-from threedi_models_simulations.utils import unzip_archive
+from threedi_models_simulations.utils.file import unzip_archive
 
 
 class DownloadWorkerSignals(QObject):

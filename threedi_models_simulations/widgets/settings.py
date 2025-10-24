@@ -24,7 +24,7 @@ from threedi_models_simulations.constants import (
     DEFAULT_UPLOAD_TIMEOUT,
     MANAGEMENT_URL_PREFIX,
 )
-from threedi_models_simulations.utils import is_writable
+from threedi_models_simulations.utils.file import is_writable
 
 
 def settings_are_valid() -> bool:

@@ -49,7 +49,7 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_simulation,
     fetch_simulation_downloads,
 )
-from threedi_models_simulations.utils import translate_illegal_chars
+from threedi_models_simulations.utils.file import translate_illegal_chars
 from threedi_models_simulations.widgets.utils.download_progress_delegate import (
     DownloadProgressDelegate,
 )

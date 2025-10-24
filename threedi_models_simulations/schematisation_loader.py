@@ -2,7 +2,7 @@ from enum import Enum
 
 from qgis.PyQt.QtCore import QSettings
 
-from threedi_models_simulations.utils import get_schematisation_editor_instance
+from threedi_models_simulations.utils.qgis import get_schematisation_editor_instance
 from threedi_models_simulations.widgets.schematisation_download_dialog import (
     SchematisationDownloadDialog,
 )
