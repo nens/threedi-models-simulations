@@ -8,6 +8,9 @@ from threedi_models_simulations.constants import ICONS_DIR
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.initialization import (
     InitializationPage,
 )
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.name import (
+    NamePage,
+)
 
 
 class SimulationWizard(QWizard):
@@ -25,3 +28,4 @@ class SimulationWizard(QWizard):
             QPixmap(os.path.join(ICONS_DIR, "logo.svg")),
         )
         self.addPage(InitializationPage(self))
+        self.addPage(NamePage(self))

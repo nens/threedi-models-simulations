@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 
 from qgis.core import Qgis, QgsMessageLog
 
+from threedi_models_simulations.models.file_boundary_condition import (
+    FileBoundaryCondition,
+)
 from threedi_models_simulations.models.simulation import Simulation
 
 
@@ -13,7 +16,9 @@ class NewSimulation:
     simulation_template_id: str
 
     # init_options: InitOptions = None
-    # boundary_conditions: BoundaryConditions = None
+    boundary_conditions: FileBoundaryCondition = None
+    boundary_conditions_data: list = None
+
     # structure_controls: StructureControls = None
     # initial_conditions: InitialConditions = None
     # laterals: Laterals = None
@@ -38,6 +43,7 @@ def load_template_in_model(
     events,
     lizard_post_processing_overview,
     simulation_template,
+    organisation,
 ) -> Simulation:
     QgsMessageLog.logMessage("simulation", level=Qgis.Critical)
     QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
@@ -49,13 +55,23 @@ def load_template_in_model(
     QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
     QgsMessageLog.logMessage("template", level=Qgis.Critical)
     QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+    QgsMessageLog.logMessage("organisation", level=Qgis.Critical)
+    QgsMessageLog.logMessage(str(organisation), level=Qgis.Critical)
 
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
         name=" ",  # temp: will be filled later
-        organisation="dfdfd",
-        start_datetime=datetime.now(timezone.utc),
-        end_datetime=datetime.now(timezone.utc),
+        organisation=organisation.unique_id,
+        start_datetime=datetime.now(timezone.utc),  # temp: will be filled later
+        end_datetime=datetime.now(timezone.utc),  # temp: will be filled later
         started_from="3Di Modeller Interface",
     )
+
+    # events
+
+    # postprocessing
+
+    # template
+
+    # settings

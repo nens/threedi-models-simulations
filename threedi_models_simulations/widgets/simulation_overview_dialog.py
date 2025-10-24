@@ -256,6 +256,7 @@ class SimulationOverviewDialog(QDialog):
                 events,
                 lizard_post_processing_overview,
                 simulation_template,
+                model_selection_dlg.organisation,
             )
 
     def get_simulation_data_from_template(self, template):
@@ -297,6 +298,7 @@ class SimulationOverviewDialog(QDialog):
         events,
         lizard_post_processing_overview,
         simulation_template,
+        organisation,
     ):
         """Opening a wizard which allows defining and running new simulations."""
 
@@ -307,6 +309,7 @@ class SimulationOverviewDialog(QDialog):
             events,
             lizard_post_processing_overview,
             simulation_template,
+            organisation,
         )
 
         wiz = SimulationWizard(new_sim, self)
