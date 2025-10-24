@@ -61,7 +61,7 @@ def load_template_in_model(
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
-        name=" ",  # temp: will be filled later
+        name=simulation.name,
         organisation=organisation.unique_id,
         start_datetime=datetime.now(timezone.utc),  # temp: will be filled later
         end_datetime=datetime.now(timezone.utc),  # temp: will be filled later
@@ -75,3 +75,5 @@ def load_template_in_model(
     # template
 
     # settings
+
+    return new_sim

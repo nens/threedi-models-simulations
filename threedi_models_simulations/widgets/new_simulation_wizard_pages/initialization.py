@@ -13,7 +13,7 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page 
 
 
 class InitializationPage(WizardPage):
-    def __init__(self, parent):
+    def __init__(self, parent, new_sim):
         super().__init__(parent, show_steps=False)
         self.setTitle("Starting a new simulation")
         self.setSubTitle(

@@ -3,6 +3,7 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QLabel,
+    QLineEdit,
     QRadioButton,
     QVBoxLayout,
 )
@@ -13,8 +14,8 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page 
 
 
 class NamePage(WizardPage):
-    def __init__(self, parent):
-        super().__init__(parent, show_steps=False)
+    def __init__(self, parent, new_sim):
+        super().__init__(parent, show_steps=True)
         self.setTitle("Starting a new simulation")
         self.setSubTitle(
             r'You can find more information about setting projects and tags in the <a href="https://docs.3di.live/i_running_a_simulation.html#starting-a-simulation/">documentation</a>.'
@@ -25,16 +26,20 @@ class NamePage(WizardPage):
         layout = QVBoxLayout()
         main_widget.setLayout(layout)
 
-        # Initial conditions
-        init_cond_gb = QGroupBox("Initial conditions", main_widget)
-        init_cond_layout = QVBoxLayout()
-        water_levels_rb = QRadioButton("Initial water levels", init_cond_gb)
-        saved_state_rb = QRadioButton("Used save state", init_cond_gb)
-        init_cond_layout.addWidget(water_levels_rb)
-        init_cond_layout.addWidget(saved_state_rb)
-        init_cond_gb.setLayout(init_cond_layout)
+        layout.addWidget(QLabel("New simulation name", main_widget))
+        layout.addWidget(QLineEdit(new_sim.simulation.name))
 
-        layout.addWidget(init_cond_gb)
+        layout.addWidget(QLabel("Project", main_widget))
+        project_le = QLineEdit(main_widget)
+        project_le.setPlaceholderText("Project name (optional)")
+        layout.addWidget(project_le)
+
+        layout.addWidget(QLabel("Tags", main_widget))
+        tags_le = QLineEdit(main_widget)
+        tags_le.setPlaceholderText("Comma-separated tags (optional)")
+        layout.addWidget(tags_le)
+
+        layout.addStretch()
 
     def initializePage(self):
         # Fill the page with the current model

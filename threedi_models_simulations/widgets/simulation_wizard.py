@@ -16,7 +16,7 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.name import 
 class SimulationWizard(QWizard):
     def __init__(
         self,
-        simulation,
+        new_sim,
         parent,
     ):
         super().__init__(parent)
@@ -27,5 +27,5 @@ class SimulationWizard(QWizard):
             QWizard.WizardPixmap.LogoPixmap,
             QPixmap(os.path.join(ICONS_DIR, "logo.svg")),
         )
-        self.addPage(InitializationPage(self))
-        self.addPage(NamePage(self))
+        self.addPage(InitializationPage(self, new_sim))
+        self.addPage(NamePage(self, new_sim))
