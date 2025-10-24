@@ -1,8 +1,10 @@
+import os
+
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QAction
 from qgis.PyQt.QtWidgets import QMessageBox
 
-from threedi_models_simulations.constants import PLUGIN_ICON, PLUGIN_NAME
+from threedi_models_simulations.constants import CACHE_PATH, PLUGIN_ICON, PLUGIN_NAME
 from threedi_models_simulations.widgets.dock import DockWidget
 from threedi_models_simulations.widgets.settings import (
     SettingsDialog,
@@ -77,6 +79,8 @@ class ModelsSimulationsPlugin:
                 "The current settings are not valid, unable to start the M&S plugin",
             )
             return
+
+        os.makedirs(CACHE_PATH, exist_ok=True)
 
         self.dockwidget.setVisible(not self.dockwidget.isVisible())
 

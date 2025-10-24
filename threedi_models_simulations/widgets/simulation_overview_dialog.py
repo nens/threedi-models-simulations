@@ -301,7 +301,14 @@ class SimulationOverviewDialog(QDialog):
         # pass it a model
         # s = Simulation()
 
-        wiz = SimulationWizard(self)
+        wiz = SimulationWizard(
+            simulation,
+            settings_overview,
+            events,
+            lizard_post_processing_overview,
+            simulation_template,
+            self,
+        )
 
         # This is hack to be able to add hyperlinks in QWizard subtitle (for this we need
         # to find the QLabel holding the subtitle, but this is only created after showing the widget)

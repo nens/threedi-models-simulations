@@ -12,7 +12,26 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.initializati
 
 
 class SimulationWizard(QWizard):
-    def __init__(self, parent):
+    def __init__(
+        self,
+        simulation,
+        settings_overview,
+        events,
+        lizard_post_processing_overview,
+        simulation_template,
+        parent,
+    ):
+        # QgsMessageLog.logMessage("-----------", level=Qgis.Critical)
+        # QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
+        # QgsMessageLog.logMessage("-----------", level=Qgis.Critical)
+        # QgsMessageLog.logMessage(str(settings_overview), level=Qgis.Critical)
+        # QgsMessageLog.logMessage("-----------", level=Qgis.Critical)
+        # QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
+        # QgsMessageLog.logMessage("-----------", level=Qgis.Critical)
+        # QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
+        # QgsMessageLog.logMessage("-----------", level=Qgis.Critical)
+        # QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+
         super().__init__(parent)
         self.setWindowTitle("New simulation")
         self.setWizardStyle(QWizard.ClassicStyle)

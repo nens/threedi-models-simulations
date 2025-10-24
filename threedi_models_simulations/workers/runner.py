@@ -5,7 +5,7 @@ import time
 from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 from threedi_api_client.openapi import ApiException
 
-from threedi_models_simulations.constants import PLUGIN_PATH, RADAR_ID
+from threedi_models_simulations.constants import CACHE_PATH, RADAR_ID
 from threedi_models_simulations.threedi_api_utils import (
     RainEventTypes,
     ThreediFileState,
@@ -19,7 +19,6 @@ from threedi_models_simulations.utils import (
     write_json_data,
 )
 
-CACHE_PATH = os.path.join(PLUGIN_PATH, "_cached_data")
 TEMPLATE_PATH = os.path.join(CACHE_PATH, "templates.json")
 INITIAL_WATERLEVELS_TEMPLATE = os.path.join(CACHE_PATH, "initial_waterlevels.json")
 INITIAL_CONCENTRATIONS_TEMPLATE = os.path.join(
