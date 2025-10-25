@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from qgis.core import Qgis, QgsApplication, QgsMessageLog
-from qgis.PyQt.QtCore import Qt, QThreadPool, pyqtSignal
+from qgis.PyQt.QtCore import QSettings, Qt, QThreadPool, pyqtSignal
 from qgis.PyQt.QtGui import QAction, QColor, QIcon, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -323,37 +323,16 @@ class SimulationOverviewDialog(QDialog):
                 label.setTextInteractionFlags(Qt.TextBrowserInteraction)
                 label.setOpenExternalLinks(True)
 
+        self.accept()
         if wiz.exec() == QDialog.DialogCode.Accepted:
             QgsMessageLog.logMessage("ACCEPT", level=Qgis.Critical)
+            self.start_simulation(new_sim)
 
-        # pass the model to a sender
-
-        # self.simulation_init_wizard = SimulationInit(
-        #     self.model_selection_dlg.current_model,
-        #     simulation_template,
-        #     settings_overview,
-        #     events,
-        #     lizard_post_processing_overview,
-        #     organisation=self.model_selection_dlg.organisation,
-        #     api=self.threedi_api,
-        #     parent=self,
-        # )
-
-        # self.simulation_wizard = SimulationWizard(
-        #     self.plugin_dock, self.model_selection_dlg, self.simulation_init_wizard
-        # )
-        # if simulation:
-        #     self.simulation_wizard.load_template_parameters(
-        #         simulation, settings_overview, events, lizard_post_processing_overview
-        #     )
-        # self.close()
-        # self.simulation_wizard.exec()
-
-    def start_simulations(self, simulations_to_run):
-        """Start the simulations."""
-        upload_timeout = self.settings.value("threedi/timeout", 900, type=int)
+    def start_simulation(self, new_sim):
+        """Start the simulation."""
+        upload_timeout = QSettings().value("threedi/timeout", 900, type=int)
         simulations_runner = SimulationRunner(
-            self.threedi_api, simulations_to_run, upload_timeout=upload_timeout
+            self.threedi_api, new_sim, upload_timeout=upload_timeout
         )
         simulations_runner.signals.initializing_simulations_progress.connect(
             self.on_initializing_progress

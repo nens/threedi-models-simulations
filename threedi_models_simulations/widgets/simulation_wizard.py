@@ -27,5 +27,14 @@ class SimulationWizard(QWizard):
             QWizard.WizardPixmap.LogoPixmap,
             QPixmap(os.path.join(ICONS_DIR, "logo.svg")),
         )
+        self.currentIdChanged.connect(self.page_changed)
         self.addPage(InitializationPage(self, new_sim))
         self.addPage(NamePage(self, new_sim))
+
+    def page_changed(self):
+        """Update the step widget of the current page"""
+        pass
+        # current_page = self.currentPage()
+        # if current_page.get_steps_widget() is not None:
+        #     # update
+        #     pass
