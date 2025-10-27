@@ -14,6 +14,9 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.initializati
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.name import (
     NamePage,
 )
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.settings import (
+    SettingsPage,
+)
 
 
 class SimulationWizard(QWizard):
@@ -44,16 +47,23 @@ class SimulationWizard(QWizard):
         duration = QStandardItem("Duration")
         duration.setData(DurationPage(self, new_sim))
 
+        settings = QStandardItem("Settings")
+        settings.setData(SettingsPage(self, new_sim))
+
         self.addPage(initialization.data())
         self.addPage(name.data())
         self.addPage(duration.data())
+        self.addPage(settings.data())
 
         parent_item.appendRow(initialization)
         parent_item.appendRow(name)
         parent_item.appendRow(duration)
+
         sep = QStandardItem()
         sep.setData(True, Qt.UserRole + 10)  # mark as separator
         parent_item.appendRow(sep)
+
+        parent_item.appendRow(settings)
 
     def page_changed(self):
         """Update the step widget of the current page"""
