@@ -7,7 +7,8 @@ from uuid import uuid4
 
 import requests
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
-from qgis.PyQt.QtCore import QLocale, QSettings
+from qgis.PyQt.QtCore import QLocale, QSettings, Qt
+from qgis.PyQt.QtGui import QPen
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -18,6 +19,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QRadioButton,
     QSpinBox,
+    QStyledItemDelegate,
     QTimeEdit,
     QWidget,
 )
@@ -278,3 +280,15 @@ def get_download_file(download, file_path):
         for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
             if chunk:
                 f.write(chunk)
+
+
+class SeparatorDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        if index.data(Qt.UserRole + 10):  # Custom role for separator lines
+            pen = QPen(Qt.gray)
+            pen.setWidth(1)
+            painter.setPen(pen)
+            y = option.rect.center().y()
+            painter.drawLine(option.rect.left(), y, option.rect.right(), y)
+        else:
+            super().paint(painter, option, index)
