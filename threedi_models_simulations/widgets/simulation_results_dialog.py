@@ -40,7 +40,8 @@ from threedi_models_simulations.constants import (
     ICONS_DIR,
     USER_DATETIME_FORMAT,
 )
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.file import translate_illegal_chars
+from threedi_models_simulations.utils.threedi_api import (
     expiration_time,
     extract_error_message,
     fetch_model,
@@ -49,7 +50,6 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_simulation,
     fetch_simulation_downloads,
 )
-from threedi_models_simulations.utils.file import translate_illegal_chars
 from threedi_models_simulations.widgets.utils.download_progress_delegate import (
     DownloadProgressDelegate,
 )

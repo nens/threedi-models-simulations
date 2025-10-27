@@ -2,21 +2,27 @@ import os
 import tempfile
 import time
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
-from threedi_api_client.openapi import ApiException
+from threedi_api_client.openapi import ApiException, Simulation
 
 from threedi_models_simulations.constants import CACHE_PATH, RADAR_ID
-from threedi_models_simulations.threedi_api_utils import (
-    RainEventTypes,
-    ThreediFileState,
-    ThreediModelTaskStatus,
-    WindEventTypes,
-    extract_error_message,
-)
 from threedi_models_simulations.utils.general import (
     get_download_file,
     upload_local_file,
     write_json_data,
+)
+from threedi_models_simulations.utils.model import NewSimulation
+from threedi_models_simulations.utils.threedi_api import (
+    RainEventTypes,
+    ThreediFileState,
+    ThreediModelTaskStatus,
+    WindEventTypes,
+    create_simulation,
+    create_simulation_action,
+    create_template_from_simulation,
+    extract_error_message,
+    fetch_simulation_status,
 )
 
 TEMPLATE_PATH = os.path.join(CACHE_PATH, "templates.json")
@@ -32,17 +38,14 @@ TEMPDIR = tempfile.gettempdir()
 
 
 class SimulationRunnerError(Exception):
-    """Simulation runner exception class."""
-
     pass
 
 
 class SimulationRunnerSignals(QObject):
     """Definition of the simulation runner signals."""
 
-    # simulation to run, simulation initialized, current progress, total progress
-    # TODO
-    # initializing_simulations_progress = pyqtSignal(dm.NewSimulation, bool, int, int)
+    # simulation initialized, current progress, total progress
+    initializing_simulations_progress = pyqtSignal(NewSimulation, bool, int, int)
     # error message
     initializing_simulations_failed = pyqtSignal(str)
     # message
@@ -52,35 +55,32 @@ class SimulationRunnerSignals(QObject):
 class SimulationRunner(QRunnable):
     """Worker object responsible for running simulations."""
 
-    def __init__(self, threedi_api, simulations_to_run, upload_timeout=900):
+    def __init__(self, threedi_api, new_sim, upload_timeout=900):
         super().__init__()
         self.threedi_api = threedi_api
-        self.simulations_to_run = simulations_to_run
-        self.current_simulation = None
+        self.new_sim = new_sim
         self.upload_timeout = upload_timeout
-        self.tc = None
         self.signals = SimulationRunnerSignals()
         self.total_progress = 100
         self.steps_per_simulation = 10
         self.current_step = 0
-        self.number_of_steps = len(self.simulations_to_run) * self.steps_per_simulation
-        self.percentage_per_step = self.total_progress / self.number_of_steps
-        self.substances = {}
+        self.percentage_per_step = self.total_progress / self.steps_per_simulation
 
     def create_simulation(self):
         """Create a new simulation out of the NewSimulation data model."""
-        simulation = self.tc.create_simulation(
-            name=self.current_simulation.name,
-            tags=self.current_simulation.tags,
-            threedimodel=self.current_simulation.threedimodel_id,
-            start_datetime=self.current_simulation.start_datetime,
-            organisation=self.current_simulation.organisation_uuid,
-            duration=self.current_simulation.duration,
-            started_from=self.current_simulation.started_from,
+        simulation = create_simulation(
+            self.threedi_api,
+            name=self.new_sim.simulation.name,
+            tags=self.new_sim.simulation.tags,
+            threedimodel=self.new_sim.simulation.threedimodel,
+            start_datetime=self.new_sim.simulation.start_datetime,
+            organisation=self.new_sim.simulation.organisation,
+            duration=self.new_sim.simulation.duration,
+            started_from=self.new_sim.simulation.started_from,
         )
-        self.current_simulation.simulation = simulation
-        current_status = self.tc.fetch_simulation_status(simulation.id)
-        self.current_simulation.initial_status = current_status
+        self.new_sim.simulation = simulation
+        current_status = fetch_simulation_status(self.threedi_api, simulation.id)
+        self.new_sim.initial_status = current_status
 
     def include_init_options(self):
         """Apply initialization options to the new simulation."""
@@ -1046,23 +1046,28 @@ class SimulationRunner(QRunnable):
                 )
 
     def start_simulation(self):
+        QgsMessageLog.logMessage("Start simulation", level=Qgis.Critical)
         """Start (or add to queue) given simulation. Or only create a template"""
-        sim_id = self.current_simulation.simulation.id
-        if self.current_simulation.start_simulation:
+        sim_id = self.new_sim.simulation.id
+        if self.new_sim.start_simulation:
             try:
-                self.tc.create_simulation_action(sim_id, name="start")
+                QgsMessageLog.logMessage("start", level=Qgis.Critical)
+                create_simulation_action(self.threedi_api, sim_id, name="start")
+                QgsMessageLog.logMessage("started", level=Qgis.Critical)
             except ApiException as e:
                 if e.status == 429:
-                    self.tc.create_simulation_action(sim_id, name="queue")
+                    QgsMessageLog.logMessage("queue", level=Qgis.Critical)
+                    create_simulation_action(self.threedi_api, sim_id, name="queue")
                 else:
                     raise e
         else:
             # simulation_start can only be disabled when template name is set.
-            assert self.current_simulation.template_name
+            assert self.new_sim.template_name
 
-        if self.current_simulation.template_name is not None:
-            template = self.tc.create_template_from_simulation(
-                self.current_simulation.template_name, str(sim_id)
+        if self.new_sim.template_name is not None:
+            QgsMessageLog.logMessage("create template from sim", level=Qgis.Critical)
+            template = create_template_from_simulation(
+                self.threedi_api, self.current_simulation.template_name, str(sim_id)
             )
             return template.id
 
@@ -1070,41 +1075,40 @@ class SimulationRunner(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        """Run new simulation(s)."""
+        """Run new simulation."""
         try:
-            for simulation_to_run in self.simulations_to_run:
-                self.current_simulation = simulation_to_run
-                self.report_progress(increase_current_step=False)
-                self.create_simulation()
-                self.report_progress()
-                self.include_init_options()
-                self.report_progress()
-                self.include_substances()
-                self.report_progress()
-                self.include_boundary_conditions()
-                self.report_progress()
-                self.include_structure_controls()
-                self.report_progress()
-                self.include_initial_conditions()
-                self.report_progress()
-                self.include_laterals()
-                self.report_progress()
-                self.include_dwf()
-                self.report_progress()
-                self.include_breaches()
-                self.report_progress()
-                self.include_precipitation()
-                self.report_progress()
-                self.include_wind()
-                self.report_progress()
-                self.include_settings()
-                self.report_progress()
-                self.include_new_saved_state()
-                self.report_progress()
-                self.include_lizard_post_processing()
-                self.report_progress()
-                template_id = self.start_simulation()
-                self.report_progress(simulation_initialized=True)
+            self.report_progress(increase_current_step=False)
+            self.create_simulation()
+            self.report_progress()
+            # self.include_init_options()
+            # self.report_progress()
+            # self.include_substances()
+            # self.report_progress()
+            # self.include_boundary_conditions()
+            # self.report_progress()
+            # self.include_structure_controls()
+            # self.report_progress()
+            # self.include_initial_conditions()
+            # self.report_progress()
+            # self.include_laterals()
+            # self.report_progress()
+            # self.include_dwf()
+            # self.report_progress()
+            # self.include_breaches()
+            # self.report_progress()
+            # self.include_precipitation()
+            # self.report_progress()
+            # self.include_wind()
+            # self.report_progress()
+            # self.include_settings()
+            # self.report_progress()
+            # self.include_new_saved_state()
+            # self.report_progress()
+            # self.include_lizard_post_processing()
+            self.report_progress()
+            template_id = self.start_simulation()
+            QgsMessageLog.logMessage("after start simulation", level=Qgis.Critical)
+            self.report_progress(simulation_initialized=True)
             msg = f"Simulations successfully initialized!"
             if template_id:
                 msg += f" Created template ID: {template_id}"
@@ -1112,8 +1116,11 @@ class SimulationRunner(QRunnable):
             self.report_finished(msg)
         except ApiException as e:
             error_msg = extract_error_message(e)
+            QgsMessageLog.logMessage("NEEEEEEEEEEEEEEEEEEE", level=Qgis.Critical)
+            QgsMessageLog.logMessage(str(error_msg), level=Qgis.Critical)
             self.report_failure(error_msg)
         except Exception as e:
+            QgsMessageLog.logMessage(str(e), level=Qgis.Critical)
             error_msg = f"Error: {e}"
             self.report_failure(error_msg)
 
@@ -1123,7 +1130,7 @@ class SimulationRunner(QRunnable):
         if increase_current_step:
             self.current_step += 1
         self.signals.initializing_simulations_progress.emit(
-            self.current_simulation,
+            self.new_sim,
             simulation_initialized,
             current_progress,
             self.total_progress,

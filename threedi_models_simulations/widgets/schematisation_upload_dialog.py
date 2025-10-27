@@ -18,11 +18,11 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from threedi_models_simulations.logging import ListViewLogger
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.qgis import is_loaded_in_schematisation_editor
+from threedi_models_simulations.utils.threedi_api import (
     fetch_schematisation,
     fetch_schematisation_latest_revision,
 )
-from threedi_models_simulations.utils.qgis import is_loaded_in_schematisation_editor
 from threedi_models_simulations.widgets.model_delete_dialog import ModelDeletionDialog
 from threedi_models_simulations.widgets.schematisation_upload_wizard import (
     SchematisationUploadWizard,

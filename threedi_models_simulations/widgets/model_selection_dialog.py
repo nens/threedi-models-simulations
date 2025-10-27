@@ -32,7 +32,8 @@ from threedi_api_client.openapi import ApiException
 from threedi_mi_utils import LocalSchematisation, list_local_schematisations
 
 from threedi_models_simulations.constants import ICONS_DIR
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.qgis import set_named_style
+from threedi_models_simulations.utils.threedi_api import (
     extract_error_message,
     fetch_model_geojson_breaches_download,
     fetch_model_geopackage_download,
@@ -41,7 +42,6 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_simulation_templates_with_count,
     get_download_file,
 )
-from threedi_models_simulations.utils.qgis import set_named_style
 from threedi_models_simulations.widgets.settings import (
     read_3di_settings,
     save_3di_settings,

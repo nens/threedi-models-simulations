@@ -7,7 +7,7 @@ from qgis.PyQt.QtCore import QByteArray, QObject, QUrl, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 from threedi_api_client.openapi import ApiException
 
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.threedi_api import (
     SimulationStatusName,
     extract_error_message,
     fetch_simulation_statuses,

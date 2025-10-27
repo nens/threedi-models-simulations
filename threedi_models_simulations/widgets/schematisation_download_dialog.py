@@ -24,7 +24,8 @@ from threedi_api_client.openapi import ApiException
 from threedi_mi_utils import LocalSchematisation, list_local_schematisations
 
 from threedi_models_simulations.constants import ICONS_DIR
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.file import unzip_archive
+from threedi_models_simulations.utils.threedi_api import (
     download_schematisation_revision_raster,
     download_schematisation_revision_sqlite,
     extract_error_message,
@@ -35,7 +36,6 @@ from threedi_models_simulations.threedi_api_utils import (
     fetch_schematisations_with_count,
     get_download_file,
 )
-from threedi_models_simulations.utils.file import unzip_archive
 
 
 class SchematisationDownloadDialog(QDialog):

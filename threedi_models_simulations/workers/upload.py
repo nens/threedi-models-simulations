@@ -7,7 +7,8 @@ from qgis.PyQt.QtCore import QByteArray, QObject, QRunnable, QUrl, pyqtSignal, p
 from threedi_api_client.files import upload_file
 
 from threedi_models_simulations.constants import UPLOAD_CHUNK_SIZE
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.file import zip_into_archive
+from threedi_models_simulations.utils.threedi_api import (
     FileState,
     SchematisationApiMapper,
     ThreediModelTaskStatus,
@@ -26,7 +27,6 @@ from threedi_models_simulations.threedi_api_utils import (
     upload_schematisation_revision,
     upload_schematisation_revision_raster,
 )
-from threedi_models_simulations.utils.file import zip_into_archive
 
 
 class RevisionUploadError(Exception):

@@ -16,17 +16,17 @@ from qgis.PyQt.QtWidgets import (
     QSpacerItem,
     QTreeView,
 )
-from threedi_api_client.openapi import ApiException
+from threedi_api_client.openapi import ApiException, Simulation
 
 from threedi_models_simulations.constants import ICONS_DIR
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.model import load_template_in_model
+from threedi_models_simulations.utils.threedi_api import (
     create_simulation_action,
     extract_error_message,
     fetch_simulation_events,
     fetch_simulation_lizard_postprocessing_overview,
     fetch_simulation_settings_overview,
 )
-from threedi_models_simulations.utils.model import load_template_in_model
 from threedi_models_simulations.widgets.model_selection_dialog import (
     ModelSelectionDialog,
 )
@@ -323,13 +323,13 @@ class SimulationOverviewDialog(QDialog):
                 label.setTextInteractionFlags(Qt.TextBrowserInteraction)
                 label.setOpenExternalLinks(True)
 
-        self.accept()
+        # self.accept()
         if wiz.exec() == QDialog.DialogCode.Accepted:
-            QgsMessageLog.logMessage("ACCEPT", level=Qgis.Critical)
             self.start_simulation(new_sim)
 
     def start_simulation(self, new_sim):
         """Start the simulation."""
+
         upload_timeout = QSettings().value("threedi/timeout", 900, type=int)
         simulations_runner = SimulationRunner(
             self.threedi_api, new_sim, upload_timeout=upload_timeout
@@ -374,10 +374,11 @@ class SimulationOverviewDialog(QDialog):
         total_progress,
     ):
         """Feedback on new simulation(s) initialization progress signal."""
-        msg = f'Initializing simulation "{new_simulation.name}"...'
+        msg = f'Initializing simulation "{new_simulation.simulation.name}"...'
         self.communication.progress_bar(
             msg, 0, total_progress, current_progress, clear_msg_bar=True
         )
+
         if new_simulation_initialized:
             sim = new_simulation.simulation
             initial_status = new_simulation.initial_status
@@ -397,11 +398,12 @@ class SimulationOverviewDialog(QDialog):
             self.communication.bar_info(info_msg)
 
     def on_initializing_failed(self, error_message):
-        """Feedback on new simulation(s) initialization failure signal."""
+        """Feedback on new simulation initialization failure signal."""
+        QgsMessageLog.logMessage(error_message, level=Qgis.Critical)
         self.communication.clear_message_bar()
         self.communication.bar_error(error_message, log_text_color=QColor(Qt.red))
 
     def on_initializing_finished(self, message):
-        """Feedback on new simulation(s) initialization finished signal."""
+        """Feedback on new simulation initialization finished signal."""
         self.communication.clear_message_bar()
         self.communication.bar_info(message)

@@ -12,13 +12,13 @@ from threedi_api_client.openapi import ApiException
 from threedi_mi_utils import LocalSchematisation
 from threedi_schema import ThreediDatabase
 
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.general import ensure_valid_schema
+from threedi_models_simulations.utils.qgis import geopackage_layer
+from threedi_models_simulations.utils.threedi_api import (
     SchematisationApiMapper,
     create_schematisation,
     extract_error_message,
 )
-from threedi_models_simulations.utils.general import ensure_valid_schema
-from threedi_models_simulations.utils.qgis import geopackage_layer
 from threedi_models_simulations.widgets.new_wizard_pages.explain import (
     SchematisationExplainPage,
 )

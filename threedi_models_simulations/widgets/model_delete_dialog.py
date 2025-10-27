@@ -15,7 +15,7 @@ from qgis.PyQt.QtWidgets import (
 from threedi_api_client.openapi import ApiException
 
 from threedi_models_simulations.constants import MAX_SCHEMATISATION_MODELS
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.threedi_api import (
     FETCH_LIMIT,
     delete_model,
     extract_error_message,

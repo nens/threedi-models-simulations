@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Callable, List, Tuple
 
 import requests
+from qgis.core import Qgis, QgsMessageLog
 from threedi_api_client import ThreediApi
 from threedi_api_client.openapi import (
     Action,
@@ -577,6 +578,11 @@ def create_simulation_action(threedi_api, simulation_pk: int, **action_data) -> 
     return threedi_api.simulations_actions_create(str(simulation_pk), action_data)
 
 
+def create_simulation(threedi_api, **simulation_data) -> Simulation:
+    sim = Simulation(**simulation_data)
+    return threedi_api.simulations_create(sim)
+
+
 def fetch_simulations(threedi_api) -> List[Simulation]:
     """Fetch all simulations available for current user."""
     return paginated_fetch(
@@ -584,8 +590,26 @@ def fetch_simulations(threedi_api) -> List[Simulation]:
     )
 
 
+def fetch_simulation_status(threedi_api, simulation_pk: int) -> CurrentStatus:
+    """Get a given simulation current status."""
+    return threedi_api.simulations_status_list(str(simulation_pk), limit=FETCH_LIMIT)
+
+
 def fetch_simulation(threedi_api, simulation_pk: int) -> Simulation:
     return threedi_api.simulations_read(id=simulation_pk)
+
+
+def create_simulation_action(threedi_api, simulation_pk: int, **action_data) -> Action:
+    """Make an action on 'simulation_pk' simulation."""
+    return threedi_api.simulations_actions_create(str(simulation_pk), action_data)
+
+
+def create_template_from_simulation(
+    threedi_api, name: str, simulation_pk: str, **data
+) -> Template:
+    """Create simulation template out of the simulation."""
+    data.update({"name": name, "simulation": simulation_pk})
+    return threedi_api.simulation_templates_create(data)
 
 
 def fetch_simulation_downloads(

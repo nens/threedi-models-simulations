@@ -20,13 +20,6 @@ from qgis.PyQt.QtWidgets import (
 )
 from threedi_api_client.openapi import ApiException
 
-from threedi_models_simulations.threedi_api_utils import (
-    SchematisationApiMapper,
-    UploadFileStatus,
-    UploadFileType,
-    download_schematisation_revision_sqlite,
-    fetch_schematisation_revision_rasters,
-)
 from threedi_models_simulations.utils.file import (
     is_file_checksum_equal,
     zip_into_archive,
@@ -36,6 +29,13 @@ from threedi_models_simulations.utils.general import (
 )
 from threedi_models_simulations.utils.qgis import (
     geopackage_layer,
+)
+from threedi_models_simulations.utils.threedi_api import (
+    SchematisationApiMapper,
+    UploadFileStatus,
+    UploadFileType,
+    download_schematisation_revision_sqlite,
+    fetch_schematisation_revision_rasters,
 )
 
 

@@ -3,7 +3,7 @@ from threedi_api_client import ThreediApi
 from threedi_api_client.openapi import ApiException
 
 from threedi_models_simulations.authentication import get_3di_auth
-from threedi_models_simulations.threedi_api_utils import (
+from threedi_models_simulations.utils.threedi_api import (
     extract_error_message,
     get_api_client_with_personal_api_token,
     paginated_fetch,

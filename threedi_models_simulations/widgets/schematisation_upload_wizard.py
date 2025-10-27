@@ -5,7 +5,7 @@ from qgis.PyQt.QtCore import QSettings, QSize
 from qgis.PyQt.QtWidgets import QSizePolicy, QWizard
 from threedi_api_client.openapi import SchematisationRevision
 
-from threedi_models_simulations.threedi_api_utils import fetch_schematisation_revisions
+from threedi_models_simulations.utils.threedi_api import fetch_schematisation_revisions
 from threedi_models_simulations.widgets.upload_wizard_pages.check_model import (
     CheckModelPage,
 )
