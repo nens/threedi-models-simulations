@@ -312,7 +312,7 @@ class SimulationOverviewDialog(QDialog):
             organisation,
         )
 
-        wiz = SimulationWizard(new_sim, self)
+        wiz = SimulationWizard(new_sim, self.threedi_api, organisation, self)
 
         # This is hack to be able to add hyperlinks in QWizard subtitle (for this we need
         # to find the QLabel holding the subtitle, but this is only created after showing the widget)

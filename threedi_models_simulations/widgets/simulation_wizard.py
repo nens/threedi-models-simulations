@@ -23,6 +23,8 @@ class SimulationWizard(QWizard):
     def __init__(
         self,
         new_sim,
+        threedi_api,
+        organisation,
         parent,
     ):
         super().__init__(parent)
@@ -39,7 +41,9 @@ class SimulationWizard(QWizard):
         parent_item = self.tree_model.invisibleRootItem()
 
         initialization = QStandardItem("Initialization")
-        initialization.setData(InitializationPage(self, new_sim))
+        initialization.setData(
+            InitializationPage(self, new_sim, threedi_api, organisation)
+        )
 
         name = QStandardItem("Name")
         name.setData(NamePage(self, new_sim))

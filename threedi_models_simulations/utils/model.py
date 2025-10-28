@@ -21,7 +21,7 @@ class NewSimulation:
     simulation_template_id: str
 
     # init_options: InitOptions = None
-    # boundary_conditions: FileBoundaryCondition = None
+    # fileboundaryconditions: FileBoundaryCondition = None
     # boundary_conditions_data: list = None
 
     # structure_controls: StructureControls = None
@@ -66,10 +66,13 @@ def load_template_in_model(
     )
 
     # events
+    QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
 
     # postprocessing
+    QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
 
     # template
+    QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
 
     # settings
     new_sim.aggregation_settings = settings_overview.aggregation_settings

@@ -7,18 +7,23 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from threedi_models_simulations.utils.threedi_api import fetch_contracts
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page import (
     WizardPage,
 )
 
 
 class InitializationPage(WizardPage):
-    def __init__(self, parent, new_sim):
+    def __init__(self, parent, new_sim, threedi_api, organisation):
         super().__init__(parent, show_steps=False)
         self.setTitle("Starting a new simulation")
         self.setSubTitle(
             r'You can find more information about starting a simulation in the <a href="https://docs.3di.live/i_running_a_simulation.html#starting-a-simulation/">documentation</a>.'
         )
+
+        self.new_sim = new_sim
+        self.threedi_api = threedi_api
+        self.organisation = organisation
 
         main_widget = self.get_page_widget()
 
@@ -84,19 +89,19 @@ class InitializationPage(WizardPage):
         events_layout.addWidget(raster_edits_cb, 0, 1, 1, 3)
 
         # Water quality
-        wq_gb = QGroupBox("Water quality", main_widget)
+        self.wq_gb = QGroupBox("Water quality", main_widget)
         wq_layout = QGridLayout()
-        wq_gb.setLayout(wq_layout)
+        self.wq_gb.setLayout(wq_layout)
 
-        wq_layout.addWidget(QLabel("Add substrances to:", wq_gb), 0, 0)
+        wq_layout.addWidget(QLabel("Add substrances to:", self.wq_gb), 0, 0)
 
-        initial_water_sub_cb = QCheckBox("Initial water", wq_gb)
-        boundary_cond_sub_cb = QCheckBox("Boundary conditions", wq_gb)
-        lateral_cond_sub_cb = QCheckBox("Laterals", wq_gb)
-        dwf_sub_cb = QCheckBox("Dry weather flow", wq_gb)
-        rain_sub_cb = QCheckBox("Rain", wq_gb)
-        evaporation_seepage_sub_cb = QCheckBox("Evaporation and seepage", wq_gb)
-        leakage_sub_cb = QCheckBox("Leakage", wq_gb)
+        initial_water_sub_cb = QCheckBox("Initial water", self.wq_gb)
+        boundary_cond_sub_cb = QCheckBox("Boundary conditions", self.wq_gb)
+        lateral_cond_sub_cb = QCheckBox("Laterals", self.wq_gb)
+        dwf_sub_cb = QCheckBox("Dry weather flow", self.wq_gb)
+        rain_sub_cb = QCheckBox("Rain", self.wq_gb)
+        evaporation_seepage_sub_cb = QCheckBox("Evaporation and seepage", self.wq_gb)
+        leakage_sub_cb = QCheckBox("Leakage", self.wq_gb)
 
         wq_layout.addWidget(initial_water_sub_cb, 1, 0)
         wq_layout.addWidget(boundary_cond_sub_cb, 2, 0)
@@ -111,13 +116,14 @@ class InitializationPage(WizardPage):
         layout.addWidget(init_cond_gb)
         layout.addWidget(forcings_gb)
         layout.addWidget(events_gb)
-        layout.addWidget(wq_gb)
+        layout.addWidget(self.wq_gb)
 
     def initializePage(self):
-        # Fill the page with the current model
-        return
+        # Disable substance UI if not in organisation contract
+        self.check_substance_contract()
 
     def validatePage(self):
+        # set model
         return True
 
     def isComplete(self):
@@ -125,3 +131,23 @@ class InitializationPage(WizardPage):
         # so that the wizard knows that it must refresh the Next button. This requires us to add the following connect()
         # call to the SailingPage constructor:  connect(sailing, SIGNAL(selectionChanged()), this, SIGNAL(completeChanged()));
         return True
+
+    def check_substance_contract(self):
+        contracts = fetch_contracts(
+            self.threedi_api, organisation__unique_id=self.organisation.unique_id
+        )
+        self.has_water_quality_license = False
+        for contract in contracts:
+            if "waterquality" in contract.scope:
+                self.has_water_quality_license = True
+                break
+
+        if not self.has_water_quality_license:
+            self.wq_gb.setEnabled(False)
+            for checkbox in self.wq_gb.findChildren(QCheckBox):
+                checkbox.setChecked(False)
+                checkbox.setEnabled(False)
+
+            self.wq_gb.setToolTip(
+                "Your organisation's contract does not include water quality simulations. Please get in touch to be informed about the possibilities."
+            )
