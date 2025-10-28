@@ -1,16 +1,14 @@
-from qgis.core import Qgis, QgsMessageLog
 from qgis.gui import QgsCollapsibleGroupBox
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QGridLayout,
-    QGroupBox,
     QLabel,
-    QLineEdit,
-    QRadioButton,
+    QPushButton,
     QScrollArea,
     QSpinBox,
+    QTreeView,
     QVBoxLayout,
     QWidget,
 )
@@ -229,137 +227,157 @@ class SettingsPage(WizardPage):
         self.use_nested_newton = QCheckBox(numerical_settings_gb)
         numerical_settings_layout.addWidget(self.use_nested_newton, 16, 1)
 
+        numerical_settings_layout.addWidget(
+            QLabel("Flooding threshold:", numerical_settings_gb), 17, 0
+        )
+        self.flooding_threshold = QDoubleSpinBox(numerical_settings_gb)
+        self.flooding_threshold.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.flooding_threshold.setDecimals(13)
+        self.flooding_threshold.setMaximum(0.05)
+        self.flooding_threshold.setSingleStep(1e-06)
+        self.flooding_threshold.setProperty("value", 1e-06)
+        numerical_settings_layout.addWidget(self.flooding_threshold, 17, 1)
+
+        numerical_settings_layout.addWidget(
+            QLabel("Friction shallow water depth correction:", numerical_settings_gb),
+            18,
+            0,
+        )
+        self.friction_shallow_water_depth_correction = QComboBox(numerical_settings_gb)
+
+        self.friction_shallow_water_depth_correction.addItem("off")
+        self.friction_shallow_water_depth_correction.addItem(
+            "max between avg and divided channel based friction"
+        )
+        self.friction_shallow_water_depth_correction.addItem("always linearized")
+        self.friction_shallow_water_depth_correction.addItem(
+            "linearizes the depth based on a weighed averaged"
+        )
+        numerical_settings_layout.addWidget(
+            self.friction_shallow_water_depth_correction, 18, 1
+        )
+
+        numerical_settings_layout.addWidget(
+            QLabel("Time integration method:", numerical_settings_gb), 19, 0
+        )
+        self.time_integration_method = QComboBox(numerical_settings_gb)
+        self.time_integration_method.addItem("euler implicit")
+        numerical_settings_layout.addWidget(self.time_integration_method, 19, 1)
+
+        numerical_settings_layout.addWidget(
+            QLabel("Limiter slope crossectional area 2D:", numerical_settings_gb), 20, 0
+        )
+        self.limiter_slope_crossectional_area_2d = QComboBox(numerical_settings_gb)
+        self.limiter_slope_crossectional_area_2d.addItem("off")
+        self.limiter_slope_crossectional_area_2d.addItem("higher order scheme")
+        self.limiter_slope_crossectional_area_2d.addItem(
+            "cross-sections treated as upwind method volume/surface area"
+        )
+        self.limiter_slope_crossectional_area_2d.addItem(
+            "combination traditional method thin layer approach"
+        )
+        numerical_settings_layout.addWidget(
+            self.limiter_slope_crossectional_area_2d, 20, 1
+        )
+
+        numerical_settings_layout.addWidget(
+            QLabel("Limiter slope friction 2D:", numerical_settings_gb), 21, 0
+        )
+        self.limiter_slope_friction_2d = QComboBox(numerical_settings_gb)
+        self.limiter_slope_friction_2d.addItem("off")
+        self.limiter_slope_friction_2d.addItem("standard")
+        numerical_settings_layout.addWidget(self.limiter_slope_friction_2d, 21, 1)
+
+        numerical_settings_layout.addWidget(
+            QLabel("Use preconditioner CG:", numerical_settings_gb), 22, 0
+        )
+        self.use_preconditioner_cg = QComboBox(numerical_settings_gb)
+        self.use_preconditioner_cg.addItem("off")
+        self.use_preconditioner_cg.addItem("standard")
+        numerical_settings_layout.addWidget(self.use_preconditioner_cg, 22, 1)
+
         content_layout.addWidget(numerical_settings_gb)
 
-        # self.label_9 = QtWidgets.QLabel(self.group_numerical)
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_9.setFont(font)
-        # self.label_9.setObjectName("label_9")
-        # self.gridLayout_9.addWidget(self.label_9, 8, 3, 1, 1)
-        # self.flooding_threshold = QtWidgets.QDoubleSpinBox(self.group_numerical)
-        # self.flooding_threshold.setMinimumSize(QtCore.QSize(0, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.flooding_threshold.setFont(font)
-        # self.flooding_threshold.setStyleSheet("QDoubleSpinBox {background-color: white;}")
-        # self.flooding_threshold.setFrame(False)
-        # self.flooding_threshold.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        # self.flooding_threshold.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
-        # self.flooding_threshold.setDecimals(13)
-        # self.flooding_threshold.setMaximum(0.05)
-        # self.flooding_threshold.setSingleStep(1e-06)
-        # self.flooding_threshold.setProperty("value", 1e-06)
-        # self.flooding_threshold.setObjectName("flooding_threshold")
-        # self.gridLayout_9.addWidget(self.flooding_threshold, 8, 4, 1, 1)
-        # self.label_16 = QtWidgets.QLabel(self.group_numerical)
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_16.setFont(font)
-        # self.label_16.setObjectName("label_16")
-        # self.gridLayout_9.addWidget(self.label_16, 9, 0, 1, 1)
-        # self.friction_shallow_water_depth_correction = QtWidgets.QComboBox(self.group_numerical)
-        # self.friction_shallow_water_depth_correction.setMinimumSize(QtCore.QSize(150, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.friction_shallow_water_depth_correction.setFont(font)
-        # self.friction_shallow_water_depth_correction.setStyleSheet("QComboBox {background-color:white; selection-background-color: lightgray;}")
-        # self.friction_shallow_water_depth_correction.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
-        # self.friction_shallow_water_depth_correction.setFrame(False)
-        # self.friction_shallow_water_depth_correction.setObjectName("friction_shallow_water_depth_correction")
-        # self.friction_shallow_water_depth_correction.addItem("")
-        # self.friction_shallow_water_depth_correction.addItem("")
-        # self.friction_shallow_water_depth_correction.addItem("")
-        # self.friction_shallow_water_depth_correction.addItem("")
-        # self.gridLayout_9.addWidget(self.friction_shallow_water_depth_correction, 9, 1, 1, 4)
-        # self.label_18 = QtWidgets.QLabel(self.group_numerical)
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_18.setFont(font)
-        # self.label_18.setObjectName("label_18")
-        # self.gridLayout_9.addWidget(self.label_18, 10, 0, 1, 1)
-        # self.time_integration_method = QtWidgets.QComboBox(self.group_numerical)
-        # self.time_integration_method.setMinimumSize(QtCore.QSize(0, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.time_integration_method.setFont(font)
-        # self.time_integration_method.setStyleSheet("QComboBox {background-color:white; selection-background-color: lightgray;}")
-        # self.time_integration_method.setFrame(False)
-        # self.time_integration_method.setObjectName("time_integration_method")
-        # self.time_integration_method.addItem("")
-        # self.gridLayout_9.addWidget(self.time_integration_method, 10, 1, 1, 4)
-        # self.label_3 = QtWidgets.QLabel(self.group_numerical)
-        # self.label_3.setMinimumSize(QtCore.QSize(350, 0))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_3.setFont(font)
-        # self.label_3.setObjectName("label_3")
-        # self.gridLayout_9.addWidget(self.label_3, 11, 0, 1, 1)
-        # self.limiter_slope_crossectional_area_2d = QtWidgets.QComboBox(self.group_numerical)
-        # self.limiter_slope_crossectional_area_2d.setMinimumSize(QtCore.QSize(150, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.limiter_slope_crossectional_area_2d.setFont(font)
-        # self.limiter_slope_crossectional_area_2d.setStyleSheet("QComboBox {background-color:white; selection-background-color: lightgray;}")
-        # self.limiter_slope_crossectional_area_2d.setFrame(False)
-        # self.limiter_slope_crossectional_area_2d.setObjectName("limiter_slope_crossectional_area_2d")
-        # self.limiter_slope_crossectional_area_2d.addItem("")
-        # self.limiter_slope_crossectional_area_2d.addItem("")
-        # self.limiter_slope_crossectional_area_2d.addItem("")
-        # self.limiter_slope_crossectional_area_2d.addItem("")
-        # self.gridLayout_9.addWidget(self.limiter_slope_crossectional_area_2d, 11, 1, 1, 4)
-        # self.label_21 = QtWidgets.QLabel(self.group_numerical)
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_21.setFont(font)
-        # self.label_21.setObjectName("label_21")
-        # self.gridLayout_9.addWidget(self.label_21, 12, 0, 1, 1)
-        # self.limiter_slope_friction_2d = QtWidgets.QComboBox(self.group_numerical)
-        # self.limiter_slope_friction_2d.setMinimumSize(QtCore.QSize(0, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.limiter_slope_friction_2d.setFont(font)
-        # self.limiter_slope_friction_2d.setStyleSheet("QComboBox {background-color:white; selection-background-color: lightgray;}")
-        # self.limiter_slope_friction_2d.setFrame(False)
-        # self.limiter_slope_friction_2d.setObjectName("limiter_slope_friction_2d")
-        # self.limiter_slope_friction_2d.addItem("")
-        # self.limiter_slope_friction_2d.addItem("")
-        # self.gridLayout_9.addWidget(self.limiter_slope_friction_2d, 12, 1, 1, 4)
-        # self.label_26 = QtWidgets.QLabel(self.group_numerical)
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.label_26.setFont(font)
-        # self.label_26.setObjectName("label_26")
-        # self.gridLayout_9.addWidget(self.label_26, 13, 0, 1, 1)
-        # self.use_preconditioner_cg = QtWidgets.QComboBox(self.group_numerical)
-        # self.use_preconditioner_cg.setMinimumSize(QtCore.QSize(0, 25))
-        # font = QtGui.QFont()
-        # font.setFamily("Segoe UI")
-        # font.setPointSize(10)
-        # self.use_preconditioner_cg.setFont(font)
-        # self.use_preconditioner_cg.setStyleSheet("QComboBox {background-color:white; selection-background-color: lightgray;}")
-        # self.use_preconditioner_cg.setFrame(False)
-        # self.use_preconditioner_cg.setObjectName("use_preconditioner_cg")
-        # self.use_preconditioner_cg.addItem("")
-        # self.use_preconditioner_cg.addItem("")
-        # self.gridLayout_9.addWidget(self.use_preconditioner_cg, 13, 1, 1, 4)
-        # self.gridLayout_5.addWidget(self.group_numerical, 1, 0, 1, 1)
-        # spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        # self.gridLayout_5.addItem(spacerItem1, 5, 0, 1, 1)
+        # Aggregation settings
+        agg_settings_gb = QgsCollapsibleGroupBox("Aggregation", scroll_content_widget)
+        agg_settings_gb.setProperty("collapsed", True)
+        agg_settings_layout = QGridLayout(agg_settings_gb)
+
+        self.aggregation_tv = QTreeView(agg_settings_gb)
+        agg_settings_layout.addWidget(self.aggregation_tv, 0, 0, 2, 4)
+        self.add_aggregation_entry = QPushButton("Add", agg_settings_gb)
+        agg_settings_layout.addWidget(self.add_aggregation_entry, 2, 2)
+        self.remove_aggregation_entry = QPushButton("Remove", agg_settings_gb)
+        agg_settings_layout.addWidget(self.remove_aggregation_entry, 2, 3)
+
+        content_layout.addWidget(agg_settings_gb)
+
+        # Water quality settings
+        water_quality_gb = QgsCollapsibleGroupBox(
+            "Water quality", scroll_content_widget
+        )
+        water_quality_gb.setProperty("collapsed", True)
+        water_quality_layout = QGridLayout(water_quality_gb)
+
+        water_quality_layout.addWidget(QLabel("Time step:", water_quality_gb), 0, 0)
+        self.time_step_2 = QDoubleSpinBox(water_quality_gb)
+        self.time_step_2.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.time_step_2.setDecimals(4)
+        water_quality_layout.addWidget(self.time_step_2, 0, 1)
+
+        water_quality_layout.addWidget(QLabel("Min time step:", water_quality_gb), 1, 0)
+        self.min_time_step_2 = QDoubleSpinBox(water_quality_gb)
+        self.min_time_step_2.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.min_time_step_2.setDecimals(4)
+        water_quality_layout.addWidget(self.min_time_step_2, 1, 1)
+
+        water_quality_layout.addWidget(QLabel("Max time step:", water_quality_gb), 2, 0)
+        self.max_time_step_2 = QDoubleSpinBox(water_quality_gb)
+        self.max_time_step_2.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.max_time_step_2.setDecimals(4)
+        water_quality_layout.addWidget(self.max_time_step_2, 2, 1)
+
+        water_quality_layout.addWidget(
+            QLabel("General numerical threshold:", water_quality_gb), 3, 0
+        )
+        self.general_numerical_threshold_2 = QDoubleSpinBox(water_quality_gb)
+        self.general_numerical_threshold_2.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.general_numerical_threshold_2.setDecimals(13)
+        self.general_numerical_threshold_2.setMaximum(1.0)
+        water_quality_layout.addWidget(self.general_numerical_threshold_2, 3, 1)
+
+        water_quality_layout.addWidget(
+            QLabel("Max number of multi step:", water_quality_gb), 4, 0
+        )
+        self.max_number_of_multi_step = QSpinBox(water_quality_gb)
+        self.max_number_of_multi_step.setButtonSymbols(QSpinBox.NoButtons)
+        self.max_number_of_multi_step.setMaximum(2147483647)
+        self.max_number_of_multi_step.setProperty("value", 0)
+        water_quality_layout.addWidget(self.max_number_of_multi_step, 4, 1)
+
+        water_quality_layout.addWidget(
+            QLabel("Max gs sweep iterations:", water_quality_gb), 5, 0
+        )
+        self.max_gs_sweep_iterations = QSpinBox(water_quality_gb)
+        self.max_gs_sweep_iterations.setButtonSymbols(QSpinBox.NoButtons)
+        self.max_gs_sweep_iterations.setMaximum(2147483647)
+        self.max_gs_sweep_iterations.setProperty("value", 0)
+        water_quality_layout.addWidget(self.max_gs_sweep_iterations, 5, 1)
+
+        water_quality_layout.addWidget(
+            QLabel("Convergence eps:", water_quality_gb), 6, 0
+        )
+        self.convergence_eps_2 = QDoubleSpinBox(water_quality_gb)
+        self.convergence_eps_2.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.convergence_eps_2.setDecimals(7)
+        self.convergence_eps_2.setMinimum(1e-06)
+        self.convergence_eps_2.setMaximum(0.0001)
+        self.convergence_eps_2.setSingleStep(1e-06)
+        water_quality_layout.addWidget(self.convergence_eps_2, 6, 1)
+
+        content_layout.addWidget(water_quality_gb)
 
         content_layout.addStretch()
-
         layout.addWidget(scroll_area)
 
     def initializePage(self):
@@ -368,6 +386,7 @@ class SettingsPage(WizardPage):
 
     def validatePage(self):
         # when the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is shown (or the wizard finishes); otherwise, the current page stays up.
+        # Update the model
         return True
 
     def isComplete(self):
