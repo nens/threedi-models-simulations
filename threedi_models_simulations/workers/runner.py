@@ -20,6 +20,11 @@ from threedi_models_simulations.utils.threedi_api import (
     WindEventTypes,
     create_simulation,
     create_simulation_action,
+    create_simulation_settings_aggregation,
+    create_simulation_settings_numerical,
+    create_simulation_settings_physical,
+    create_simulation_settings_time_step,
+    create_simulation_settings_water_quality,
     create_template_from_simulation,
     extract_error_message,
     fetch_simulation_status,
@@ -978,23 +983,26 @@ class SimulationRunner(QRunnable):
 
     def include_settings(self):
         """Add settings to the new simulation."""
-        sim_id = self.current_simulation.simulation.id
-        settings = self.current_simulation.settings
-        self.tc.create_simulation_settings_physical(
-            sim_id, **settings.physical_settings
+        sim_id = self.new_sim.simulation.id
+        create_simulation_settings_physical(
+            self.threedi_api, sim_id, **self.new_sim.physical_settings.to_dict()
         )
-        self.tc.create_simulation_settings_numerical(
-            sim_id, **settings.numerical_settings
+        create_simulation_settings_numerical(
+            self.threedi_api, sim_id, **self.new_sim.numerical_settings.to_dict()
         )
-        self.tc.create_simulation_settings_time_step(
-            sim_id, **settings.time_step_settings
+        create_simulation_settings_time_step(
+            self.threedi_api, sim_id, **self.new_sim.time_step_settings.to_dict()
         )
-        self.tc.create_simulation_settings_water_quality(
-            sim_id, **settings.water_quality_settings
-        )
-        for aggregation_settings in settings.aggregation_settings_list:
-            self.tc.create_simulation_settings_aggregation(
-                sim_id, **aggregation_settings
+        if self.new_sim.water_quality_settings:
+            create_simulation_settings_water_quality(
+                self.threedi_api,
+                sim_id,
+                **self.new_sim.water_quality_settings.to_dict(),
+            )
+
+        for aggregation_settings in self.new_sim.aggregation_settings:
+            create_simulation_settings_aggregation(
+                self.threedi_api, sim_id, **aggregation_settings.to_dict()
             )
 
     def include_lizard_post_processing(self):
@@ -1100,8 +1108,8 @@ class SimulationRunner(QRunnable):
             # self.report_progress()
             # self.include_wind()
             # self.report_progress()
-            # self.include_settings()
-            # self.report_progress()
+            self.include_settings()
+            self.report_progress()
             # self.include_new_saved_state()
             # self.report_progress()
             # self.include_lizard_post_processing()

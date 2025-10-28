@@ -672,6 +672,38 @@ def fetch_simulation_templates_with_count(
     return simulation_templates_list, simulation_templates_count
 
 
+def create_simulation_settings_physical(
+    threedi_api, simulation_pk: int, **data
+) -> PhysicalSettings:
+    return threedi_api.simulations_settings_physical_create(str(simulation_pk), data)
+
+
+def create_simulation_settings_numerical(
+    threedi_api, simulation_pk: int, **data
+) -> NumericalSettings:
+    return threedi_api.simulations_settings_numerical_create(str(simulation_pk), data)
+
+
+def create_simulation_settings_time_step(
+    threedi_api, simulation_pk: int, **data
+) -> TimeStepSettings:
+    return threedi_api.simulations_settings_time_step_create(str(simulation_pk), data)
+
+
+def create_simulation_settings_aggregation(
+    threedi_api, simulation_pk: int, **data
+) -> AggregationSettings:
+    return threedi_api.simulations_settings_aggregation_create(str(simulation_pk), data)
+
+
+def create_simulation_settings_water_quality(
+    threedi_api, simulation_pk: int, **data
+) -> WaterQualitySettings:
+    return threedi_api.simulations_settings_water_quality_create(
+        str(simulation_pk), data
+    )
+
+
 class SchematisationApiMapper:
     """This class maps types between the geopackage and the API"""
 

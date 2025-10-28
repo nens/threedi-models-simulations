@@ -52,6 +52,7 @@ class SettingsPage(WizardPage):
         self.advection_1d_cb.addItem(
             "3: Combined momentum and energy conservative scheme"
         )
+        self.advection_1d_cb.currentIndexChanged.connect(self.completeChanged)
         phys_settings_layout.addWidget(self.advection_1d_cb, 0, 1)
 
         phys_settings_layout.addWidget(
@@ -298,6 +299,55 @@ class SettingsPage(WizardPage):
 
         content_layout.addWidget(numerical_settings_gb)
 
+        # Timestep settings
+        timestep_settings_gb = QgsCollapsibleGroupBox("Timestep", scroll_content_widget)
+        timestep_settings_gb.setProperty("collapsed", True)
+        timestep_settings_layout = QGridLayout(timestep_settings_gb)
+
+        timestep_settings_layout.addWidget(
+            QLabel("Time step:", timestep_settings_gb), 0, 0
+        )
+        self.time_step = QDoubleSpinBox(timestep_settings_gb)
+        self.time_step.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.time_step.setDecimals(4)
+        self.time_step.setMaximum(1000000000.0)
+        timestep_settings_layout.addWidget(self.time_step, 0, 1)
+
+        timestep_settings_layout.addWidget(
+            QLabel("Min time step:", timestep_settings_gb), 1, 0
+        )
+        self.min_time_step = QDoubleSpinBox(timestep_settings_gb)
+        self.min_time_step.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.min_time_step.setDecimals(4)
+        self.min_time_step.setMaximum(1000000000.0)
+        timestep_settings_layout.addWidget(self.min_time_step, 1, 1)
+
+        timestep_settings_layout.addWidget(
+            QLabel("Max time step:", timestep_settings_gb), 2, 0
+        )
+        self.max_time_step = QDoubleSpinBox(timestep_settings_gb)
+        self.max_time_step.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.max_time_step.setDecimals(4)
+        self.max_time_step.setMaximum(1000000000.0)
+        timestep_settings_layout.addWidget(self.max_time_step, 2, 1)
+
+        timestep_settings_layout.addWidget(
+            QLabel("Output time step:", timestep_settings_gb), 3, 0
+        )
+        self.output_time_step = QDoubleSpinBox(timestep_settings_gb)
+        self.output_time_step.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.output_time_step.setDecimals(4)
+        self.output_time_step.setMaximum(1000000000.0)
+        timestep_settings_layout.addWidget(self.output_time_step, 3, 1)
+
+        timestep_settings_layout.addWidget(
+            QLabel("Use time step stretch:", timestep_settings_gb), 4, 0
+        )
+        self.use_time_step_stretch = QCheckBox(timestep_settings_gb)
+        timestep_settings_layout.addWidget(self.use_time_step_stretch, 4, 1)
+
+        content_layout.addWidget(timestep_settings_gb)
+
         # Aggregation settings
         agg_settings_gb = QgsCollapsibleGroupBox("Aggregation", scroll_content_widget)
         agg_settings_gb.setProperty("collapsed", True)
@@ -391,6 +441,5 @@ class SettingsPage(WizardPage):
 
     def isComplete(self):
         # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
-        # so that the wizard knows that it must refresh the Next button. This requires us to add the following connect()
-        # call to the SailingPage constructor:  connect(sailing, SIGNAL(selectionChanged()), this, SIGNAL(completeChanged()));
+        # so that the wizard knows that it must refresh the Next button.
         return True

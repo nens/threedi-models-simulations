@@ -394,7 +394,7 @@ class SimulationOverviewDialog(QDialog):
                 "simulation_user_last_name": self.current_user["last_name"],
             }
             self.add_simulation_to_model(sim.id, sim_data)
-            info_msg = f"Simulation {new_simulation.name} added to queue!"
+            info_msg = f"Simulation {new_simulation.simulation.name} added to queue!"
             self.communication.bar_info(info_msg)
 
     def on_initializing_failed(self, error_message):

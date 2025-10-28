@@ -1,13 +1,21 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import List
 
 from qgis.core import Qgis, QgsMessageLog
 
+from threedi_models_simulations.models.aggregation_settings import AggregationSettings
 from threedi_models_simulations.models.current_status import CurrentStatus
 from threedi_models_simulations.models.file_boundary_condition import (
     FileBoundaryCondition,
 )
+from threedi_models_simulations.models.numerical_settings import NumericalSettings
+from threedi_models_simulations.models.physical_settings import PhysicalSettings
 from threedi_models_simulations.models.simulation import Simulation
+from threedi_models_simulations.models.time_step_settings import TimeStepSettings
+from threedi_models_simulations.models.water_quality_settings import (
+    WaterQualitySettings,
+)
 
 
 @dataclass
@@ -28,7 +36,11 @@ class NewSimulation:
     # breaches: Breaches = None
     # precipitation: Precipitation = None
     # wind: Wind = None
-    # settings: Settings = None
+    numerical_settings: NumericalSettings = None
+    water_quality_settings: WaterQualitySettings = None
+    physical_settings: PhysicalSettings = None
+    aggregation_settings: List[AggregationSettings] = None
+    time_step_settings: TimeStepSettings = None
     # lizard_post_processing: LizardPostProcessing = None
     # new_saved_state: SavedState = None
     template_name: str = None
@@ -64,5 +76,29 @@ def load_template_in_model(
     # template
 
     # settings
+    new_sim.aggregation_settings = [
+        AggregationSettings(**ag_setting.to_dict())
+        for ag_setting in settings_overview.aggregation_settings
+    ]  # TODO: remove URL?
+
+    if settings_overview.physical_settings:
+        new_sim.physical_settings = PhysicalSettings(
+            **settings_overview.physical_settings.to_dict()
+        )
+
+    if settings_overview.numerical_settings:
+        new_sim.numerical_settings = NumericalSettings(
+            **settings_overview.numerical_settings.to_dict()
+        )
+
+    if settings_overview.water_quality_settings:
+        new_sim.water_quality_settings = WaterQualitySettings(
+            **settings_overview.water_quality_settings.to_dict()
+        )
+
+    if settings_overview.time_step_settings:
+        new_sim.time_step_settings = TimeStepSettings(
+            **settings_overview.time_step_settings.to_dict()
+        )
 
     return new_sim
