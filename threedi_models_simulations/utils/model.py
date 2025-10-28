@@ -3,17 +3,13 @@ from datetime import datetime, timezone
 from typing import List
 
 from qgis.core import Qgis, QgsMessageLog
-
-from threedi_models_simulations.models.aggregation_settings import AggregationSettings
-from threedi_models_simulations.models.current_status import CurrentStatus
-from threedi_models_simulations.models.file_boundary_condition import (
-    FileBoundaryCondition,
-)
-from threedi_models_simulations.models.numerical_settings import NumericalSettings
-from threedi_models_simulations.models.physical_settings import PhysicalSettings
-from threedi_models_simulations.models.simulation import Simulation
-from threedi_models_simulations.models.time_step_settings import TimeStepSettings
-from threedi_models_simulations.models.water_quality_settings import (
+from threedi_api_client.openapi import (
+    AggregationSettings,
+    CurrentStatus,
+    NumericalSettings,
+    PhysicalSettings,
+    Simulation,
+    TimeStepSettings,
     WaterQualitySettings,
 )
 
@@ -57,7 +53,7 @@ def load_template_in_model(
     lizard_post_processing_overview,
     simulation_template,
     organisation,
-) -> Simulation:
+) -> NewSimulation:
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
@@ -76,29 +72,10 @@ def load_template_in_model(
     # template
 
     # settings
-    new_sim.aggregation_settings = [
-        AggregationSettings(**ag_setting.to_dict())
-        for ag_setting in settings_overview.aggregation_settings
-    ]  # TODO: remove URL?
-
-    if settings_overview.physical_settings:
-        new_sim.physical_settings = PhysicalSettings(
-            **settings_overview.physical_settings.to_dict()
-        )
-
-    if settings_overview.numerical_settings:
-        new_sim.numerical_settings = NumericalSettings(
-            **settings_overview.numerical_settings.to_dict()
-        )
-
-    if settings_overview.water_quality_settings:
-        new_sim.water_quality_settings = WaterQualitySettings(
-            **settings_overview.water_quality_settings.to_dict()
-        )
-
-    if settings_overview.time_step_settings:
-        new_sim.time_step_settings = TimeStepSettings(
-            **settings_overview.time_step_settings.to_dict()
-        )
+    new_sim.aggregation_settings = settings_overview.aggregation_settings
+    new_sim.physical_settings = settings_overview.physical_settings
+    new_sim.numerical_settings = settings_overview.numerical_settings
+    new_sim.water_quality_settings = settings_overview.water_quality_settings
+    new_sim.time_step_settings = settings_overview.time_step_settings
 
     return new_sim

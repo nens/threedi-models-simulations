@@ -4,7 +4,7 @@ import time
 
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
-from threedi_api_client.openapi import ApiException, Simulation
+from threedi_api_client.openapi import ApiException
 
 from threedi_models_simulations.constants import CACHE_PATH, RADAR_ID
 from threedi_models_simulations.utils.general import (
