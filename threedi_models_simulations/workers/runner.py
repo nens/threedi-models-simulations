@@ -1054,17 +1054,13 @@ class SimulationRunner(QRunnable):
                 )
 
     def start_simulation(self):
-        QgsMessageLog.logMessage("Start simulation", level=Qgis.Critical)
         """Start (or add to queue) given simulation. Or only create a template"""
         sim_id = self.new_sim.simulation.id
         if self.new_sim.start_simulation:
             try:
-                QgsMessageLog.logMessage("start", level=Qgis.Critical)
                 create_simulation_action(self.threedi_api, sim_id, name="start")
-                QgsMessageLog.logMessage("started", level=Qgis.Critical)
             except ApiException as e:
                 if e.status == 429:
-                    QgsMessageLog.logMessage("queue", level=Qgis.Critical)
                     create_simulation_action(self.threedi_api, sim_id, name="queue")
                 else:
                     raise e
@@ -1072,8 +1068,8 @@ class SimulationRunner(QRunnable):
             # simulation_start can only be disabled when template name is set.
             assert self.new_sim.template_name
 
+        # TODO
         if self.new_sim.template_name is not None:
-            QgsMessageLog.logMessage("create template from sim", level=Qgis.Critical)
             template = create_template_from_simulation(
                 self.threedi_api, self.current_simulation.template_name, str(sim_id)
             )
@@ -1115,7 +1111,6 @@ class SimulationRunner(QRunnable):
             # self.include_lizard_post_processing()
             self.report_progress()
             template_id = self.start_simulation()
-            QgsMessageLog.logMessage("after start simulation", level=Qgis.Critical)
             self.report_progress(simulation_initialized=True)
             msg = f"Simulations successfully initialized!"
             if template_id:
@@ -1124,8 +1119,6 @@ class SimulationRunner(QRunnable):
             self.report_finished(msg)
         except ApiException as e:
             error_msg = extract_error_message(e)
-            QgsMessageLog.logMessage("NEEEEEEEEEEEEEEEEEEE", level=Qgis.Critical)
-            QgsMessageLog.logMessage(str(error_msg), level=Qgis.Critical)
             self.report_failure(error_msg)
         except Exception as e:
             QgsMessageLog.logMessage(str(e), level=Qgis.Critical)
