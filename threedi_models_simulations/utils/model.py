@@ -35,7 +35,7 @@ from threedi_api_client.openapi import (
 )
 
 
-# TODO: These classes should be build using the generated API
+# TODO: These classes should be build using the generated API (probably using multiple kinds of precipitation/wind)
 @dataclass
 class Precipitation:
     precipitation_type: str = None
@@ -95,6 +95,7 @@ class NewSimulation:
     file_raster_sources_sinks: FileRasterSourcesSinks = None
     file_timeseries_sources_sinks: FileTimeseriesSourcesSinks = None
 
+    # LocalTimeseriesRain
     lizard_timeseries_rain: LizardTimeseriesRain = None
     local_rain: LocalRain = None
     file_timeseries_rain: FileTimeseriesRain = None
@@ -113,29 +114,37 @@ class NewSimulation:
     boundary_conditions_data: list = None
 
     # Initial conditions
-    global_value_1d: float = None
-    from_geopackage_1d: bool = None
-    initial_waterlevels_1d: dict = None
-    online_waterlevels_1d: InitialWaterlevel = None
-    global_value_2d: float = None
-    online_raster_2d: InitialWaterlevel = None
-    local_raster_2d: str = None
-    aggregation_method_2d: str = None
-    global_value_groundwater: str = None
-    online_raster_groundwater: InitialWaterlevel = None
-    local_raster_groundwater: str = None
-    aggregation_method_groundwater: str = None
+    # TODO: do we need these constant attributes?
+    initial_1d_water_level_constant: float = None  # was global_value_1d
+    initial_1d_water_level_predefined: bool = None  # was from_geopackage_1d
+    initial_1d_water_level: dict = None  # was initial_waterlevels_1d
+    initial_1d_water_level_file: InitialWaterlevel = None
+
+    initial_2d_water_level_constant: float = None  # was global_value_2d
+    initial_2d_water_level_raster: InitialWaterlevel = None
+    initial_2d_water_level_raster_local: str = None
+    initial_2d_water_level_aggregation_method: str = None
+
+    initial_groundwater_constant: str = None
+    initial_groundwater_level: InitialWaterlevel = None
+    initial_groundwater_raster: str = None
+    initial_groundwater_raster_local: str = None
+    initial_groundwater_aggregation_method: str = None
+
     saved_state: str = None
+
     initial_concentrations_2d: dict = None
     initial_concentrations_1d: dict = None
+    initial_concentrations_groundwater: dict = None
 
-    # Laterals # TODO
+    # Laterals
     laterals: list = None
+    file_laterals: list = None
     file_laterals_1d: dict = None
     file_laterals_2d: dict = None
 
     # Substances  # TODO
-    substances_data: list = None
+    substances: list = None
 
     # DWF  # TODO
     dwf_data: dict = None
@@ -175,26 +184,118 @@ def load_template_in_model(
     simulation_template,
     organisation,
 ) -> NewSimulation:
+    """Load all information that is required for the Wizard"""
+
+    QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str("------------"), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
         name=simulation.name,
         organisation=organisation.unique_id,
-        start_datetime=datetime.now(timezone.utc),  # temp: will be filled later
-        end_datetime=datetime.now(timezone.utc),  # temp: will be filled later
+        start_datetime=simulation.start_datetime,
+        end_datetime=simulation.end_datetime,
         duration=600,  # temp
         started_from="3Di Modeller Interface",
+        tags=simulation.tags,
     )
 
     # Load events
     QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
     if events:
-        pass
+        new_sim.raster_edits = events.rasteredits
+
+        new_sim.timeseries_leakage_overview = (
+            events.leakage
+        )  # [0]  # TODO: this is how its done in old plugin
+        new_sim.file_timeseries_leakage = events.filetimeseriesleakage
+        new_sim.file_raster_leakage = events.filerasterleakage
+
+        # TODO: old plugin takes first element from event attribute
+        new_sim.lizard_raster_sources_sinks = events.lizardrastersourcessinks
+        new_sim.lizard_timeseries_sources_sinks = events.lizardtimeseriessourcessinks
+        new_sim.timeseries_sources_sinks = events.timeseriessourcessinks
+        new_sim.file_raster_sources_sinks = events.filerastersourcessinks
+        new_sim.file_timeseries_sources_sinks = events.filetimeseriessourcessinks
+
+        new_sim.lizard_timeseries_rain = events.lizardtimeseriesrain
+        new_sim.local_rain = events.localrain
+        new_sim.file_timeseries_rain = events.filetimeseriesrain
+
+        new_sim.obstacle_edits = events.obstacleedits
+
+        new_sim.file_structure_controls = events.filestructurecontrols
+        new_sim.memory_structure_controls = events.memorystructurecontrols
+        new_sim.table_structure_controls = events.tablestructurecontrols
+        new_sim.timed_structure_controls = events.timedstructurecontrols
+        # TODO: used for upload
+        # new_sim.local_file_structure_controls
+
+        new_sim.file_boundary_conditions = events.fileboundaryconditions
+        # TODO: used for upload?
+        # boundary_conditions_data
+
+        # Initial conditions
+        # TODO: derive the following value
+        # new_sim.initial_1d_water_level_constant # was global_value_1d
+        new_sim.initial_1d_water_level_predefined = (
+            events.initial_onedwaterlevelpredefined
+        )  # was from_geopackage_1d
+        new_sim.initial_1d_water_level = events.initial_onedwaterlevel
+        new_sim.initial_1d_water_level_file = events.initial_onedwaterlevelfile
+
+        new_sim.initial_2d_water_level_raster = events.initial_twodwaterraster
+        if events.initial_twodwaterraster:
+            new_sim.initial_2d_water_level_aggregation_method = (
+                events.initial_twodwaterraster["aggregation_method"]
+            )
+
+        # TODO: derive the following value
+        # initial_groundwater_constant: str = None
+        new_sim.initial_groundwater_level = events.initial_groundwaterlevel
+        new_sim.initial_groundwater_raster = events.initial_groundwaterraster
+        # local_raster_groundwater: str = None
+        if events.initial_groundwaterraster:
+            new_sim.initial_groundwater_aggregation_method = (
+                events.initial_groundwaterraster["aggregation_method"]
+            )
+
+        new_sim.saved_state = events.initial_savedstate
+
+        new_sim.initial_concentrations_2d = events.initial_twod_substance_concentrations
+        new_sim.initial_concentrations_1d = events.initial_oned_substance_concentrations
+        new_sim.initial_concentrations_groundwater = (
+            events.initial_groundwater_substance_concentrations
+        )
+
+        # Laterals
+        new_sim.laterals = events.laterals
+        new_sim.file_laterals = events.filelaterals
+        # file_laterals_1d: dict = None
+        # file_laterals_2d: dict = None
+
+        # # Substances
+        new_sim.substances = events.substances
+
+        # # DWF  # are stored as lateral
+        # dwf_data: dict = None
+
+        # breaches: List[Breach] = None
+
+        # # TODO
+        # precipitation: Precipitation = None
+        # wind: Wind = None
 
     # Load postprocessing
-    # QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
-    if lizard_post_processing_overview:
-        pass
+    QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
+    # if lizard_post_processing_overview:
+    #     basic_post_processing: bool = None
+    #     arrival_time_map: bool = None
+    #     damage_estimation: DamageEstimation = None
+
+    # new_saved_state: SavedState = None
 
     # template
     QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)

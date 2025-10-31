@@ -33,10 +33,10 @@ class InitializationPage(WizardPage):
         # Initial conditions
         init_cond_gb = QGroupBox("Initial conditions", main_widget)
         init_cond_layout = QVBoxLayout()
-        water_levels_rb = QRadioButton("Initial water levels", init_cond_gb)
-        saved_state_rb = QRadioButton("Used save state", init_cond_gb)
-        init_cond_layout.addWidget(water_levels_rb)
-        init_cond_layout.addWidget(saved_state_rb)
+        self.water_levels_rb = QRadioButton("Initial water levels", init_cond_gb)
+        self.saved_state_rb = QRadioButton("Used save state", init_cond_gb)
+        init_cond_layout.addWidget(self.water_levels_rb)
+        init_cond_layout.addWidget(self.saved_state_rb)
         init_cond_gb.setLayout(init_cond_layout)
 
         # Forcings
@@ -45,8 +45,8 @@ class InitializationPage(WizardPage):
         forcings_gb.setLayout(forcings_layout)
 
         boundary_cond_cb = QCheckBox("Boundary conditions", forcings_gb)
-        laterals_cb = QCheckBox("Laterals", forcings_gb)
-        dwf_cb = QCheckBox("Dry weather flow", forcings_gb)
+        self.laterals_cb = QCheckBox("Laterals", forcings_gb)
+        self.dwf_cb = QCheckBox("Dry weather flow", forcings_gb)
         rain_cb = QCheckBox("Rain", forcings_gb)
         wind_cb = QCheckBox("Wind", forcings_gb)
         leakage_cb = QCheckBox("Leakage", forcings_gb)
@@ -64,8 +64,8 @@ class InitializationPage(WizardPage):
         )
 
         forcings_layout.addWidget(boundary_cond_cb, 0, 0)
-        forcings_layout.addWidget(laterals_cb, 1, 0)
-        forcings_layout.addWidget(dwf_cb, 2, 0)
+        forcings_layout.addWidget(self.laterals_cb, 1, 0)
+        forcings_layout.addWidget(self.dwf_cb, 2, 0)
 
         forcings_layout.addWidget(rain_cb, 0, 1)
         forcings_layout.addWidget(wind_cb, 1, 1)
@@ -122,8 +122,86 @@ class InitializationPage(WizardPage):
         # Disable substance UI if not in organisation contract
         self.check_substance_contract()
 
+        # Update the UI based on the current model
+        self.update()
+
+    def update(self):
+        ## INITIAL CONDITIONS
+        if (
+            self.new_sim.initial_1d_water_level
+            or self.new_sim.initial_1d_water_level_file
+            or self.new_sim.initial_groundwater_level
+            or self.new_sim.initial_groundwater_raster
+            or self.new_sim.initial_groundwater_level
+            or self.new_sim.initial_groundwater_raster
+        ):
+            self.water_levels_rb.setChecked(True)
+        elif self.new_sim.saved_state:
+            self.saved_state_rb.setChecked(True)
+
+        ## FORCINGS
+
+        if self.new_sim.file_boundary_conditions:
+            self.boundary_cond_cb.setChecked(True)
+
+        # Laterals and DWF: this is how it is determined in the old plugin
+        self.laterals_cb.setChecked(
+            bool(
+                [
+                    filelateral
+                    for filelateral in self.new_sim.file_laterals
+                    if filelateral.periodic != "daily"
+                ]
+            )
+        )
+        self.dwf_cb.setChecked(
+            bool(
+                [
+                    filelateral
+                    for filelateral in self.new_sim.file_laterals
+                    if filelateral.periodic == "daily"
+                ]
+            )
+        )
+
+        # Rain
+
+        # Wind
+
+        # Leakage
+
+        # Sources Sinks
+
+        # Local or time series rain
+
+        ## EVENTS
+
+        # stucture controls
+
+        # breaches
+
+        # obstacle edits
+
+        # raster edits
+
+        ## WATER QUALITY
+
+        # initial water
+
+        # boundary condiitons
+
+        # laterals
+
+        # dwf
+
+        # rain
+
+        # evaporation
+
+        # leakage
+
     def validatePage(self):
-        # set model
+        # update model
         return True
 
     def isComplete(self):
