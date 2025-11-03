@@ -54,7 +54,9 @@ class SubstancesPage(WizardPage):
         delegate = ScientificDoubleDelegate(self.substance_table, decimals=2)
         self.substance_table.setItemDelegateForColumn(2, delegate)
         self.substance_table.setItemDelegateForColumn(3, delegate)
-
+        self.substance_table.cellChanged.connect(self.completeChanged)
+        self.substance_table.model().rowsInserted.connect(self.completeChanged)
+        self.substance_table.model().rowsRemoved.connect(self.completeChanged)
         layout.addWidget(self.substance_table, 0, 0, 1, 4)
 
         add_substance = QPushButton("+ Add substance", main_widget)
@@ -108,5 +110,15 @@ class SubstancesPage(WizardPage):
 
     def isComplete(self):
         # Check if we have incomplete rows
-
-        return False
+        for row in range(self.substance_table.rowCount()):
+            QgsMessageLog.logMessage(str(row), level=Qgis.Critical)
+            name_item = self.substance_table.item(row, 0)
+            if not name_item or not name_item.text():
+                return False
+            decay_item = self.substance_table.item(row, 2)
+            if not decay_item or not decay_item.text():
+                return False
+            diff_item = self.substance_table.item(row, 3)
+            if not diff_item or not diff_item.text():
+                return False
+        return True
