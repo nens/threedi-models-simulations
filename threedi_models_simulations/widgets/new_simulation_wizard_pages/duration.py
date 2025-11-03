@@ -116,7 +116,6 @@ class DurationPage(WizardPage):
         return
 
     def validatePage(self):
-        # when the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is shown (or the wizard finishes); otherwise, the current page stays up.
         # to_datetime() converts to UTC
         start, end = self.to_datetime()
         self.new_sim.simulation.start_datetime = start
@@ -124,8 +123,6 @@ class DurationPage(WizardPage):
         return True
 
     def isComplete(self):
-        # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
-        # so that the wizard knows that it must refresh the Next button.
         if self.calculate_simulation_duration() == 0.0:
             return False
         return True

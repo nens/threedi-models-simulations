@@ -26,6 +26,7 @@ from threedi_api_client.openapi import (
     PhysicalSettings,
     RasterEdit,
     Simulation,
+    Substance,
     TableStructureControl,
     TimedStructureControl,
     TimeseriesLeakageOverview,
@@ -144,7 +145,7 @@ class NewSimulation:
     file_laterals_2d: dict = None
 
     # Substances  # TODO
-    substances: list = None
+    substances: List[Substance] = None
 
     # DWF  # TODO
     dwf_data: dict = None

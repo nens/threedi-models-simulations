@@ -431,15 +431,10 @@ class SettingsPage(WizardPage):
         layout.addWidget(scroll_area)
 
     def initializePage(self):
-        # Fill the page with the current model
         return
 
     def validatePage(self):
-        # when the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is shown (or the wizard finishes); otherwise, the current page stays up.
-        # Update the model
         return True
 
     def isComplete(self):
-        # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
-        # so that the wizard knows that it must refresh the Next button.
         return True

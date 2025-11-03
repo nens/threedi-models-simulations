@@ -23,13 +23,7 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.substances i
 
 
 class SimulationWizard(QWizard):
-    def __init__(
-        self,
-        new_sim,
-        threedi_api,
-        organisation,
-        parent,
-    ):
+    def __init__(self, new_sim, threedi_api, organisation, parent, communication):
         super().__init__(parent)
         self.setWindowTitle("New simulation")
         self.setWizardStyle(QWizard.ClassicStyle)
@@ -55,7 +49,7 @@ class SimulationWizard(QWizard):
         duration.setData(DurationPage(self, new_sim))
 
         substances = QStandardItem("Substances")
-        substances.setData(SubstancesPage(self, new_sim))
+        substances.setData(SubstancesPage(self, new_sim, communication))
 
         settings = QStandardItem("Settings")
         settings.setData(SettingsPage(self, new_sim))

@@ -46,7 +46,6 @@ class NamePage(WizardPage):
         layout.addStretch()
 
     def initializePage(self):
-        # Fill the page with the current model
         self.name_le.setText(self.new_sim.simulation.name)
         # Note that project names are actually tags starting with "project:"
         tags_list = []
@@ -59,8 +58,6 @@ class NamePage(WizardPage):
         self.tags_le.setText(",".join(tags_list))
 
     def validatePage(self):
-        # when the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is shown (or the wizard finishes); otherwise, the current page stays up.
-        # Here we update the model
         self.new_sim.simulation.name = self.name_le.text()
         self.new_sim.simulation.tags = [
             tag.strip() for tag in self.tags_le.text().split(",")
@@ -74,9 +71,6 @@ class NamePage(WizardPage):
         return True
 
     def isComplete(self):
-        # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
-        # so that the wizard knows that it must refresh the Next button. This requires us to add the following connect()
-        # call to the SailingPage constructor:  connect(sailing, SIGNAL(selectionChanged()), this, SIGNAL(completeChanged()));
         if len(self.name_le.text()) >= 1:
             return True
         return False

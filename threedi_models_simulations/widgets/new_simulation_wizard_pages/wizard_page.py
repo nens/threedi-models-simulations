@@ -64,10 +64,17 @@ class WizardPage(QWizardPage):
         return self.wizard_steps_tree
 
     def initializePage(self):
+        # Fill the page with the current model
         raise NotImplementedError("Subclasses must implement initializePage()")
 
     def validatePage(self):
+        # When the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is
+        # shown (or the wizard finishes); otherwise, the current page stays up. After validation, the data needs to be stored
+        # in the model.
         raise NotImplementedError("Subclasses must implement validatePage()")
 
     def isComplete(self):
+        # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
+        # so that the wizard knows that it must refresh the Next button. This requires us to add the following connect()
+        # call to the SailingPage constructor:  connect(sailing, SIGNAL(selectionChanged()), this, SIGNAL(completeChanged()));
         raise NotImplementedError("Subclasses must implement isComplete()")

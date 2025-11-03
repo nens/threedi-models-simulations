@@ -201,13 +201,9 @@ class InitializationPage(WizardPage):
         # leakage
 
     def validatePage(self):
-        # update model
         return True
 
     def isComplete(self):
-        # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,
-        # so that the wizard knows that it must refresh the Next button. This requires us to add the following connect()
-        # call to the SailingPage constructor:  connect(sailing, SIGNAL(selectionChanged()), this, SIGNAL(completeChanged()));
         return True
 
     def check_substance_contract(self):
