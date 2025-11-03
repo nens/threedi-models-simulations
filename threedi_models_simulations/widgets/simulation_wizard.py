@@ -8,6 +8,15 @@ from threedi_models_simulations.constants import ICONS_DIR
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.duration import (
     DurationPage,
 )
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.init_conditions_1d import (
+    InitialConditions1DPage,
+)
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.init_conditions_2d import (
+    InitialConditions2DPage,
+)
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.init_conditions_groundwater import (
+    InitialConditionsGroundWaterPage,
+)
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.initialization import (
     InitializationPage,
 )
@@ -51,6 +60,17 @@ class SimulationWizard(QWizard):
         substances = QStandardItem("Substances")
         substances.setData(SubstancesPage(self, new_sim, communication))
 
+        initial_cond_1d = QStandardItem("1D initial waterlevels")
+        initial_cond_1d.setData(InitialConditions1DPage(self, new_sim))
+
+        initial_cond_2d = QStandardItem("2D initial waterlevels")
+        initial_cond_2d.setData(InitialConditions2DPage(self, new_sim))
+
+        initial_cond_groundwater = QStandardItem("Groundwater waterlevels")
+        initial_cond_groundwater.setData(
+            InitialConditionsGroundWaterPage(self, new_sim)
+        )
+
         settings = QStandardItem("Settings")
         settings.setData(SettingsPage(self, new_sim))
 
@@ -58,6 +78,9 @@ class SimulationWizard(QWizard):
         self.addPage(name.data())
         self.addPage(duration.data())
         self.addPage(substances.data())
+        self.addPage(initial_cond_1d.data())
+        self.addPage(initial_cond_2d.data())
+        self.addPage(initial_cond_groundwater.data())
         self.addPage(settings.data())
 
         parent_item.appendRow(initialization)
@@ -71,6 +94,13 @@ class SimulationWizard(QWizard):
         sep2 = QStandardItem()
         sep2.setData(True, Qt.UserRole + 10)
         parent_item.appendRow(sep2)
+
+        initial_cond = QStandardItem("Initial conditions")
+        initial_cond.appendRow(initial_cond_1d)
+        initial_cond.appendRow(initial_cond_2d)
+        initial_cond.appendRow(initial_cond_groundwater)
+        parent_item.appendRow(initial_cond)
+
         parent_item.appendRow(settings)
 
         self.resize(800, 700)
@@ -85,6 +115,7 @@ class SimulationWizard(QWizard):
                 # and set it to bold
                 SimulationWizard.set_items_bold_by_data(self.tree_model, current_page)
                 current_page.get_steps_tree().setModel(self.tree_model)
+                current_page.get_steps_tree().expandAll()
 
     @staticmethod
     def set_items_bold_by_data(model, value):

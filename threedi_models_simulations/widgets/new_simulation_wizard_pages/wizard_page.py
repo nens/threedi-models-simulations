@@ -22,7 +22,7 @@ class WizardPage(QWizardPage):
         if show_steps:
             self.wizard_steps_widget = QGroupBox(self)
             self.wizard_steps_widget.setLayout(QVBoxLayout())
-            self.wizard_steps_widget.setFixedWidth(200)
+            self.wizard_steps_widget.setFixedWidth(250)
 
             layout.addWidget(self.wizard_steps_widget)
 
@@ -42,7 +42,8 @@ class WizardPage(QWizardPage):
             self.wizard_steps_tree.setSelectionMode(QTreeView.NoSelection)
             self.wizard_steps_tree.setFocusPolicy(Qt.NoFocus)
             self.wizard_steps_tree.setEditTriggers(QTreeView.NoEditTriggers)
-            self.wizard_steps_tree.setIndentation(0)  # remove indent
+            self.wizard_steps_tree.setIndentation(20)  # remove indent
+            self.wizard_steps_tree.setRootIsDecorated(False)
             self.wizard_steps_tree.setItemDelegate(
                 SeparatorDelegate(self.wizard_steps_tree)
             )
