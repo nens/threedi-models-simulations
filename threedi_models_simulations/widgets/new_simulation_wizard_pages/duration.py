@@ -99,15 +99,16 @@ class DurationPage(WizardPage):
     def initializePage(self):
         # Fill the page with the current model, this is in UTC
         start_datetime = self.new_sim.simulation.start_datetime.strftime(
-            "%Y-%m-%dT%H:%M"
+            r"%Y-%m-%dT%H:%M"
         )
-        end_datetime = self.new_sim.simulation.end_datetime.strftime("%Y-%m-%dT%H:%M")
+        end_datetime = self.new_sim.simulation.end_datetime.strftime(r"%Y-%m-%dT%H:%M")
         start_date, start_time = start_datetime.split("T")
         end_date, end_time = end_datetime.split("T")
-        self.from_de.setDate(QDate.fromString(start_date))
-        self.from_te.setTime(QTime.fromString(start_time))
-        self.to_de.setDate(QDate.fromString(end_date))
-        self.to_te.setTime(QTime.fromString(end_time))
+        self.from_de.setDate(QDate.fromString(start_date, "yyyy-MM-dd"))
+        self.from_te.setTime(QTime.fromString(start_time, "H:m"))
+        self.to_de.setDate(QDate.fromString(end_date, "yyyy-MM-dd"))
+        self.to_te.setTime(QTime.fromString(end_time, "H:m"))
+
         self.time_zone_cb.setCurrentText(self.NO_TIMEZONE_DISPLAY_NAME)
 
         self.update_time_difference()
@@ -120,12 +121,6 @@ class DurationPage(WizardPage):
         start, end = self.to_datetime()
         self.new_sim.simulation.start_datetime = start
         self.new_sim.simulation.end_datetime = end
-        QgsMessageLog.logMessage(
-            str(self.new_sim.simulation.start_datetime), level=Qgis.Critical
-        )
-        QgsMessageLog.logMessage(
-            str(self.new_sim.simulation.end_datetime), level=Qgis.Critical
-        )
         return True
 
     def isComplete(self):

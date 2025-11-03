@@ -8,7 +8,7 @@ from uuid import uuid4
 import requests
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QLocale, QSettings, Qt
-from qgis.PyQt.QtGui import QPen
+from qgis.PyQt.QtGui import QDoubleValidator, QPen
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -292,3 +292,29 @@ class SeparatorDelegate(QStyledItemDelegate):
             painter.drawLine(option.rect.left(), y, option.rect.right(), y)
         else:
             super().paint(painter, option, index)
+
+
+class ScientificDoubleDelegate(QStyledItemDelegate):
+    """A delegate that allows double input including scientific notation (e.g., 1.23e-4)."""
+
+    def __init__(self, parent=None, decimals=6, bottom=-1e12, top=1e12):
+        super().__init__(parent)
+        self.decimals = decimals
+        self.bottom = bottom
+        self.top = top
+
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        validator = QDoubleValidator(self.bottom, self.top, self.decimals, parent)
+        # Enable scientific notation
+        validator.setNotation(QDoubleValidator.ScientificNotation)
+        editor.setValidator(validator)
+        editor.setAlignment(Qt.AlignRight)
+        return editor
+
+    def setModelData(self, editor, model, index):
+        """Ensure text is stored consistently (e.g., lowercase 'e', trimmed)."""
+        text = editor.text().strip()
+        # Optional: normalize 'E' to 'e'
+        text = text.replace("E", "e")
+        model.setData(index, text)

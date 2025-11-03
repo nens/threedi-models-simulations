@@ -44,7 +44,7 @@ class InitializationPage(WizardPage):
         forcings_layout = QGridLayout()
         forcings_gb.setLayout(forcings_layout)
 
-        boundary_cond_cb = QCheckBox("Boundary conditions", forcings_gb)
+        self.boundary_cond_cb = QCheckBox("Boundary conditions", forcings_gb)
         self.laterals_cb = QCheckBox("Laterals", forcings_gb)
         self.dwf_cb = QCheckBox("Dry weather flow", forcings_gb)
         rain_cb = QCheckBox("Rain", forcings_gb)
@@ -63,7 +63,7 @@ class InitializationPage(WizardPage):
             "This setting is retrieved from the selected template"
         )
 
-        forcings_layout.addWidget(boundary_cond_cb, 0, 0)
+        forcings_layout.addWidget(self.boundary_cond_cb, 0, 0)
         forcings_layout.addWidget(self.laterals_cb, 1, 0)
         forcings_layout.addWidget(self.dwf_cb, 2, 0)
 

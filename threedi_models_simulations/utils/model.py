@@ -186,10 +186,10 @@ def load_template_in_model(
 ) -> NewSimulation:
     """Load all information that is required for the Wizard"""
 
-    QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
-    QgsMessageLog.logMessage(str("------------"), level=Qgis.Critical)
-    QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
-    QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str("------------"), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
@@ -203,7 +203,7 @@ def load_template_in_model(
     )
 
     # Load events
-    QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
     if events:
         new_sim.raster_edits = events.rasteredits
 
@@ -249,7 +249,7 @@ def load_template_in_model(
         new_sim.initial_2d_water_level_raster = events.initial_twodwaterraster
         if events.initial_twodwaterraster:
             new_sim.initial_2d_water_level_aggregation_method = (
-                events.initial_twodwaterraster["aggregation_method"]
+                events.initial_twodwaterraster.aggregation_method
             )
 
         # TODO: derive the following value
@@ -259,7 +259,7 @@ def load_template_in_model(
         # local_raster_groundwater: str = None
         if events.initial_groundwaterraster:
             new_sim.initial_groundwater_aggregation_method = (
-                events.initial_groundwaterraster["aggregation_method"]
+                events.initial_groundwaterraster.aggregation_method
             )
 
         new_sim.saved_state = events.initial_savedstate
@@ -289,7 +289,7 @@ def load_template_in_model(
         # wind: Wind = None
 
     # Load postprocessing
-    QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str(lizard_post_processing_overview), level=Qgis.Critical)
     # if lizard_post_processing_overview:
     #     basic_post_processing: bool = None
     #     arrival_time_map: bool = None
@@ -298,7 +298,7 @@ def load_template_in_model(
     # new_saved_state: SavedState = None
 
     # template
-    QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+    # QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
 
     # settings
     new_sim.aggregation_settings = settings_overview.aggregation_settings
