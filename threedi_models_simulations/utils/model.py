@@ -187,10 +187,10 @@ def load_template_in_model(
 ) -> NewSimulation:
     """Load all information that is required for the Wizard"""
 
-    # QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
-    # QgsMessageLog.logMessage(str("------------"), level=Qgis.Critical)
-    # QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
-    # QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str(simulation), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str("------------"), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str(simulation_template), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
         threedimodel=str(simulation.threedimodel_id),
@@ -204,7 +204,7 @@ def load_template_in_model(
     )
 
     # Load events
-    # QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
+    QgsMessageLog.logMessage(str(events), level=Qgis.Critical)
     if events:
         new_sim.raster_edits = events.rasteredits
 

@@ -100,6 +100,9 @@ class SimulationWizard(QWizard):
         initial_cond.appendRow(initial_cond_2d)
         initial_cond.appendRow(initial_cond_groundwater)
         parent_item.appendRow(initial_cond)
+        sep3 = QStandardItem()
+        sep3.setData(True, Qt.UserRole + 10)
+        parent_item.appendRow(sep3)
 
         parent_item.appendRow(settings)
 

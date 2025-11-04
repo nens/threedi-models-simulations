@@ -42,7 +42,7 @@ class WizardPage(QWizardPage):
             self.wizard_steps_tree.setSelectionMode(QTreeView.NoSelection)
             self.wizard_steps_tree.setFocusPolicy(Qt.NoFocus)
             self.wizard_steps_tree.setEditTriggers(QTreeView.NoEditTriggers)
-            self.wizard_steps_tree.setIndentation(20)  # remove indent
+            self.wizard_steps_tree.setIndentation(20)
             self.wizard_steps_tree.setRootIsDecorated(False)
             self.wizard_steps_tree.setItemDelegate(
                 SeparatorDelegate(self.wizard_steps_tree)
