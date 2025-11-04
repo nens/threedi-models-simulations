@@ -201,6 +201,7 @@ class InitializationPage(WizardPage):
         # leakage
 
     def validatePage(self):
+        # update model
         return True
 
     def isComplete(self):

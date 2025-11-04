@@ -23,6 +23,7 @@ from threedi_api_client.openapi import (
     MemoryStructureControl,
     NumericalSettings,
     ObstacleEdit,
+    OneDSubstanceConcentration,
     PhysicalSettings,
     RasterEdit,
     Simulation,
@@ -120,6 +121,8 @@ class NewSimulation:
     initial_1d_water_level_predefined: bool = None  # was from_geopackage_1d
     initial_1d_water_level: dict = None  # was initial_waterlevels_1d
     initial_1d_water_level_file: InitialWaterlevel = None
+    # substances
+    initial_1d_substance_concentrations: list[OneDSubstanceConcentration] = None
 
     initial_2d_water_level_constant: float = None  # was global_value_2d
     initial_2d_water_level_raster: InitialWaterlevel = None
@@ -193,12 +196,13 @@ def load_template_in_model(
     QgsMessageLog.logMessage(str("---ssss---------"), level=Qgis.Critical)
     new_sim = NewSimulation(simulation_template_id=simulation_template.id)
     new_sim.simulation = Simulation(
-        threedimodel=str(simulation.threedimodel_id),
+        threedimodel=simulation.threedimodel,
+        threedimodel_id=simulation.threedimodel_id,
         name=simulation.name,
         organisation=organisation.unique_id,
         start_datetime=simulation.start_datetime,
         end_datetime=simulation.end_datetime,
-        duration=600,  # temp
+        duration=simulation.duration,
         started_from="3Di Modeller Interface",
         tags=simulation.tags,
     )
@@ -239,6 +243,7 @@ def load_template_in_model(
         # boundary_conditions_data
 
         # Initial conditions
+
         # TODO: derive the following value
         # new_sim.initial_1d_water_level_constant # was global_value_1d
         new_sim.initial_1d_water_level_predefined = (
@@ -246,6 +251,10 @@ def load_template_in_model(
         )  # was from_geopackage_1d
         new_sim.initial_1d_water_level = events.initial_onedwaterlevel
         new_sim.initial_1d_water_level_file = events.initial_onedwaterlevelfile
+        # substances
+        new_sim.initial_1d_substance_concentrations = (
+            events.initial_oned_substance_concentrations
+        )
 
         new_sim.initial_2d_water_level_raster = events.initial_twodwaterraster
         if events.initial_twodwaterraster:

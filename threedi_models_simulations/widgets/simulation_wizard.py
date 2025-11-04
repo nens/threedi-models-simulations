@@ -61,7 +61,7 @@ class SimulationWizard(QWizard):
         substances.setData(SubstancesPage(self, new_sim, communication))
 
         initial_cond_1d = QStandardItem("1D initial waterlevels")
-        initial_cond_1d.setData(InitialConditions1DPage(self, new_sim))
+        initial_cond_1d.setData(InitialConditions1DPage(self, new_sim, threedi_api))
 
         initial_cond_2d = QStandardItem("2D initial waterlevels")
         initial_cond_2d.setData(InitialConditions2DPage(self, new_sim))

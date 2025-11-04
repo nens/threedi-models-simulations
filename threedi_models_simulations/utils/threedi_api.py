@@ -379,6 +379,14 @@ def fetch_model_gridadmin_download(
     return result_file, download
 
 
+def fetch_model_initial_waterlevels(
+    threedi_api, threedimodel_id: str
+) -> List[InitialWaterlevel]:
+    return paginated_fetch(
+        threedi_api.threedimodels_initial_waterlevels_list, threedimodel_id
+    )
+
+
 def fetch_model_geojson_breaches_download(
     threedi_api, threedimodel_id: int
 ) -> Download:
