@@ -1,3 +1,4 @@
+import csv
 import os
 import tempfile
 
@@ -9,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QAction,
     QCheckBox,
     QComboBox,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QLabel,
@@ -35,7 +37,7 @@ from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page 
 
 
 class InitialConditions1DPage(WizardPage):
-    def __init__(self, parent, new_sim, threedi_api):
+    def __init__(self, parent, new_sim, threedi_api, communication):
         super().__init__(parent, show_steps=True)
         self.setTitle("Initial conditions 1D")
         self.setSubTitle(
@@ -43,6 +45,7 @@ class InitialConditions1DPage(WizardPage):
         )
         self.new_sim = new_sim
         self.threedi_api = threedi_api
+        self.communication = communication
         main_widget = self.get_page_widget()
 
         layout = QGridLayout()
@@ -81,6 +84,7 @@ class InitialConditions1DPage(WizardPage):
         add_node_row_pb = QPushButton("+ Add node", main_widget)
         add_node_from_file_pb = QPushButton("+ Add from local file", main_widget)
         add_node_row_pb.clicked.connect(self.add_node)
+        add_node_from_file_pb.clicked.connect(self.add_node_from_file)
         layout.addWidget(add_node_row_pb, 6, 2)
         layout.addWidget(add_node_from_file_pb, 6, 3)
 
@@ -121,8 +125,6 @@ class InitialConditions1DPage(WizardPage):
             self.constant_value_le.clear()
 
         # File
-        QgsMessageLog.logMessage("*****************", level=Qgis.Critical)
-        QgsMessageLog.logMessage(str(self.initial_waterlevels_1d), level=Qgis.Critical)
         self.online_value_cb.setChecked(False)
         self.online_value_cob.clear()
         for level in self.initial_waterlevels_1d:
@@ -219,6 +221,63 @@ class InitialConditions1DPage(WizardPage):
         self.table.setItem(row, 0, item)
         self.table.setItem(row, 1, QTableWidgetItem(""))
         self.table.scrollToItem(item, QTableWidget.PositionAtBottom)
+
+    def add_node_from_file(self):
+        file_name, __ = QFileDialog.getOpenFileName(
+            self,
+            "Open 1D initial waterlevel file",
+            "",
+            "Comma-separated values (*.csv *.txt)",
+        )
+
+        node_ids = []
+        values = []
+
+        # load the csv
+        with open(file_name, encoding="utf-8-sig") as csvfile:
+            reader = csv.DictReader(csvfile)
+            header = reader.fieldnames
+            if not header:
+                self.communication.show_warn("CSV file is empty!", self, "Warning")
+                return
+            if "id" not in header:
+                self.communication.show_warn(
+                    "Missing 'id' column in CSV file!", self, "Warning"
+                )
+                return
+            if "value" not in header:
+                self.communication.show_warn(
+                    "Missing 'value' column in CSV file!", self, "Warning"
+                )
+                return
+
+            waterlevels_list = list(reader)
+
+            for row in waterlevels_list:
+                node_id_str = row.get("id").strip()
+                value_str = row.get("value").strip()
+                if not node_id_str or not value_str:
+                    self.communication.show_warn(
+                        "Missing values in CSV file. Please remove these lines or fill in a value and try again.",
+                        self,
+                        "Warning",
+                    )
+                    return
+                try:
+                    node_id = int(node_id_str)
+                    value = float(value_str)
+                    node_ids.append(node_id)
+                    values.append(value)
+                except ValueError:
+                    self.communication.show_warn(
+                        f"Invalid data format in CSV: id='{node_id_str}', value='{value_str}'",
+                        self,
+                        "Warning",
+                    )
+                    return
+
+        # Show duplicate node dialog with new data and currently loaded data
+        return
 
     def delete(self, idx):
         pass
