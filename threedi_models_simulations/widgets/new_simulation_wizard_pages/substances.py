@@ -79,7 +79,12 @@ class SubstancesPage(WizardPage):
         layout.addItem(vertical_spacer, 2, 0)
 
     def add_substance(self):
-        self.substance_table.insertRow(self.substance_table.rowCount())
+        row = self.substance_table.rowCount()
+        self.substance_table.insertRow(row)
+        self.substance_table.setItem(row, self.NAME_IDX, QTableWidgetItem(""))
+        self.substance_table.setItem(row, self.UNIT_IDX, QTableWidgetItem(""))
+        (self.substance_table.setItem(row, self.DECAY_IDX, QTableWidgetItem("")),)
+        self.substance_table.setItem(row, self.DIFFUSION_IDX, QTableWidgetItem(""))
 
     def delete_substance(self, idx):
         self.substance_table.removeRow(idx.row())
@@ -155,7 +160,6 @@ class SubstancesPage(WizardPage):
             name_item = self.substance_table.item(row, self.NAME_IDX)
             if not name_item or not name_item.text():
                 return False
-
             decay_item = self.substance_table.item(row, self.DECAY_IDX)
             if not decay_item or not decay_item.text():
                 return False

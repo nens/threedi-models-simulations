@@ -387,6 +387,10 @@ def fetch_model_initial_waterlevels(
     )
 
 
+def fetch_model_initial_waterlevels_download(threedi_api, id, threedimodel_id: str):
+    return threedi_api.threedimodels_initial_waterlevels_download(id, threedimodel_id)
+
+
 def fetch_model_geojson_breaches_download(
     threedi_api, threedimodel_id: int
 ) -> Download:

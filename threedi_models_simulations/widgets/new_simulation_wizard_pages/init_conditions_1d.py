@@ -1,3 +1,7 @@
+import os
+import tempfile
+
+import numpy as np
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QDoubleValidator
@@ -15,10 +19,16 @@ from qgis.PyQt.QtWidgets import (
     QSizePolicy,
     QSpacerItem,
     QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
 )
 
-from threedi_models_simulations.utils.threedi_api import fetch_model_initial_waterlevels
+from threedi_models_simulations.utils.general import get_download_file
+from threedi_models_simulations.utils.msgpack import loadb
+from threedi_models_simulations.utils.threedi_api import (
+    fetch_model_initial_waterlevels,
+    fetch_model_initial_waterlevels_download,
+)
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page import (
     WizardPage,
 )
@@ -70,6 +80,7 @@ class InitialConditions1DPage(WizardPage):
 
         add_node_row_pb = QPushButton("+ Add node", main_widget)
         add_node_from_file_pb = QPushButton("+ Add from local file", main_widget)
+        add_node_row_pb.clicked.connect(self.add_node)
         layout.addWidget(add_node_row_pb, 6, 2)
         layout.addWidget(add_node_from_file_pb, 6, 3)
 
@@ -155,6 +166,7 @@ class InitialConditions1DPage(WizardPage):
 
     def online_checked(self, toggled):
         if not toggled:
+            # TODO: Remove the values, if required
             self.online_value_cob.clear()
             self.online_value_cob.setEnabled(False)
         else:
@@ -174,7 +186,41 @@ class InitialConditions1DPage(WizardPage):
                     )
                     break
 
-    def delete(idx):
+            # Retrieve the data and add the values
+            # TODO: caching
+            download = fetch_model_initial_waterlevels_download(
+                self.threedi_api,
+                self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
+                self.new_sim.simulation.threedimodel_id,
+            )
+            with tempfile.TemporaryDirectory() as tmpdir:
+                file_path = os.path.join(
+                    tmpdir, str(level.id) + ":" + level.file.filename
+                )
+                get_download_file(download, file_path)
+                with open(file_path, "rb") as data_file:
+                    byte_data = data_file.read()
+                    result = loadb(byte_data)
+                    data = np.column_stack((result["node_ids"], result["value"]))
+                    for pair in data:
+                        row_position = self.table.rowCount()
+                        self.table.insertRow(row_position)
+                        self.table.setItem(
+                            row_position, 0, QTableWidgetItem(str(int(pair[0])))
+                        )
+                        self.table.setItem(
+                            row_position, 1, QTableWidgetItem(str(pair[1]))
+                        )
+
+    def add_node(self):
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        item = QTableWidgetItem("")
+        self.table.setItem(row, 0, item)
+        self.table.setItem(row, 1, QTableWidgetItem(""))
+        self.table.scrollToItem(item, QTableWidget.PositionAtBottom)
+
+    def delete(self, idx):
         pass
 
     def validatePage(self):
