@@ -1,6 +1,6 @@
 import numpy as np
 from qgis.core import Qgis, QgsMessageLog
-from qgis.PyQt.QtCore import QRect, Qt
+from qgis.PyQt.QtCore import QEvent, QRect, Qt
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QFontMetrics, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -13,6 +13,8 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSpacerItem,
+    QStyledItemDelegate,
+    QStyleOptionButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -66,20 +68,22 @@ class DuplicateNodeDialog(QDialog):
         self.setLayout(layout)
 
         self.table = QTableWidget(self)
-        self.table.setColumnCount(3)
+        self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
-            ["New node ID", "New value", "Existing value"]
+            ["Active", "New node ID", "New value", "Existing value"]
         )
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        # self.table.setSelectionMode(QTableWidget.SingleSelection)
-        # self.substance_table.customContextMenuRequested.connect(self.menu_requested)
+        self.table.setSelectionMode(QTableWidget.ExtendedSelection)
+        # self.table.customContextMenuRequested.connect(self.menu_requested)
+        self.table.installEventFilter(self)
 
         delegate = ScientificDoubleDelegate(self.table, decimals=2)
         self.table.setItemDelegateForColumn(1, delegate)
         self.table.setItemDelegateForColumn(2, delegate)
+        self.table.setColumnWidth(0, 40)
 
         assert len(current_node_ids) == len(current_values)
         assert len(new_node_ids) == len(new_values)
@@ -97,33 +101,37 @@ class DuplicateNodeDialog(QDialog):
             row_position = self.table.rowCount()
             self.table.insertRow(row_position)
 
+            check_item = QTableWidgetItem()
+            check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+            check_item.setCheckState(Qt.Checked)
             node_item = QTableWidgetItem(str(new_node_id))
+            node_item.setFlags(node_item.flags() & ~Qt.ItemIsEditable)
             value_item = QTableWidgetItem(str(new_value))
-            node_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            node_item.setCheckState(Qt.Checked)
+            value_item.setFlags(value_item.flags() & ~Qt.ItemIsEditable)
 
-            self.table.setItem(row_position, 0, node_item)
-            self.table.setItem(row_position, 1, value_item)
+            self.table.setItem(row_position, 0, check_item)
+            self.table.setItem(row_position, 1, node_item)
+            self.table.setItem(row_position, 2, value_item)
 
-            if idx in duplicate_idxs:
-                node_item.setBackground(duplicate_color)
-                value_item.setBackground(duplicate_color)
+            item = QTableWidgetItem()
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
 
             if idx in duplicate_idxs:
                 contains_duplicates = True
+                node_item.setBackground(duplicate_color)
+                value_item.setBackground(duplicate_color)
+
                 item = QTableWidgetItem(str(current_values[idx]))
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 item.setBackground(duplicate_color)
-                self.table.setItem(
-                    row_position,
-                    2,
-                    item,
-                )
+
+            self.table.setItem(row_position, 3, item)
 
         layout.addWidget(self.table)
 
         duplicate_frame = QFrame(self)
         duplicate_frame.setFrameShape(
-            QFrame.Box
+            QFrame.Panel
         )  # Box, Panel, StyledPanel, HLine, VLine
         duplicate_frame.setFrameShadow(QFrame.Raised)
         duplicate_layout = QGridLayout()
@@ -144,6 +152,7 @@ class DuplicateNodeDialog(QDialog):
         toggle_button = QPushButton("Toggle duplicate node selection", duplicate_frame)
         toggle_button.setFixedWidth(200)
         duplicate_layout.addWidget(toggle_button, 0, 2)
+        toggle_button.clicked.connect(self.toggle_duplicates)
 
         message_label = QLabel(
             "Warning: the file contains nodes with different values than currently in the table. These will be overwritten when not deselected.",
@@ -163,8 +172,31 @@ class DuplicateNodeDialog(QDialog):
         buttons_layout.addSpacerItem(
             QSpacerItem(200, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         )
+        self.pb_cancel.clicked.connect(self.reject)
         self.pb_add = QPushButton("Add values")
         buttons_layout.addWidget(self.pb_add)
         layout.addLayout(buttons_layout, 3, 0, 1, 1)
 
         self.resize(600, 600)
+
+    def toggle_duplicates(self):
+        pass
+
+    def collect_nodes(self):
+        self.accept()
+
+    def eventFilter(self, obj, event):
+        if obj == self.table and event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Space:
+                selected_rows = set(
+                    index.row() for index in self.table.selectedIndexes()
+                )
+                for row in selected_rows:
+                    item = self.table.item(row, 0)
+                    current_state = item.checkState()
+                    new_state = (
+                        Qt.Unchecked if current_state == Qt.Checked else Qt.Checked
+                    )
+                    item.setCheckState(new_state)
+                return True  # event handled
+        return super().eventFilter(obj, event)
