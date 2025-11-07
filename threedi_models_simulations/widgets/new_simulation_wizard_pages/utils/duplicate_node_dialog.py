@@ -1,8 +1,11 @@
+from typing import List, Tuple
+
 import numpy as np
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QEvent, QRect, Qt
 from qgis.PyQt.QtGui import QBrush, QColor, QFont, QFontMetrics, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QDialog,
     QFrame,
     QGridLayout,
@@ -67,6 +70,8 @@ class DuplicateNodeDialog(QDialog):
         layout = QGridLayout(self)
         self.setLayout(layout)
 
+        self.new_data = []
+
         self.table = QTableWidget(self)
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
@@ -93,7 +98,6 @@ class DuplicateNodeDialog(QDialog):
             np.in1d(new_node_ids, current_node_ids)
         ]
 
-        contains_duplicates = False
         duplicate_color = QColor("#FFD27E")
 
         # Fill the page with the current model
@@ -148,10 +152,11 @@ class DuplicateNodeDialog(QDialog):
             QSpacerItem(200, 20, QSizePolicy.Expanding, QSizePolicy.Minimum), 0, 1
         )
 
-        toggle_button = QPushButton("Toggle duplicate node selection", duplicate_frame)
-        toggle_button.setFixedWidth(200)
-        duplicate_layout.addWidget(toggle_button, 0, 2)
-        toggle_button.clicked.connect(self.toggle_duplicates)
+        toggle_cb = QCheckBox("Select already present nodes", duplicate_frame)
+        toggle_cb.setFixedWidth(200)
+        toggle_cb.setCheckState(Qt.Checked)
+        duplicate_layout.addWidget(toggle_cb, 0, 2)
+        toggle_cb.clicked.connect(self.toggle_duplicates)
 
         message_label = QLabel(
             "Warning: the file contains nodes with different values than currently in the table. These will be overwritten when not deselected.",
@@ -172,19 +177,35 @@ class DuplicateNodeDialog(QDialog):
             QSpacerItem(200, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         )
         self.pb_cancel.clicked.connect(self.reject)
+
         self.pb_add = QPushButton("Add values")
+        self.pb_add.clicked.connect(self.collect_nodes)
         buttons_layout.addWidget(self.pb_add)
         layout.addLayout(buttons_layout, 3, 0, 1, 1)
 
         self.resize(600, 600)
 
-    def toggle_duplicates(self):
-        # Iterate over rows, check whether id is in duplicates -> toggles
-        pass
+    def toggle_duplicates(self, checked):
+        # Iterate over rows, check whether id is in duplicates -> toggle
+        for row in range(self.table.rowCount()):
+            if row in self.duplicate_idxs:
+                check_item = self.table.item(row, 0)
+                check_item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
     def collect_nodes(self):
+        self.new_data = []
         # Iterate over rows, collect checked values
+        for row in range(self.table.rowCount()):
+            check_item = self.table.item(row, 0)
+            if check_item.checkState() == Qt.Checked:
+                idx = int(self.table.item(row, 1).text())
+                new_value = float(self.table.item(row, 2).text())
+                self.new_data.append((idx, new_value))
+
         self.accept()
+
+    def get_new_data(self) -> List[Tuple[int, float]]:
+        return self.new_data
 
     def eventFilter(self, obj, event):
         if obj == self.table and event.type() == QEvent.KeyPress:

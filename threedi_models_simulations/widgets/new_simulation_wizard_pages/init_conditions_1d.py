@@ -285,9 +285,18 @@ class InitialConditions1DPage(WizardPage):
         d_dialog = DuplicateNodeDialog(
             current_node_ids, current_values, new_node_ids, new_values, self
         )
+        last_added_item = None
         if d_dialog.exec() == QDialog.DialogCode.Accepted:
-            # set new values in UI
-            pass
+            # Append new values in UI
+            new_data = d_dialog.get_new_data()
+            for pair in new_data:
+                row_position = self.table.rowCount()
+                self.table.insertRow(row_position)
+                self.table.setItem(row_position, 0, QTableWidgetItem(str(int(pair[0]))))
+                last_added_item = QTableWidgetItem(str(float(pair[1])))
+                self.table.setItem(row_position, 1, last_added_item)
+        if last_added_item:
+            self.table.scrollToItem(last_added_item, QTableWidget.PositionAtBottom)
 
     def _retrieve_current_nodes(self):
         current_node_ids = []
