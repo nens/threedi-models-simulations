@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QAction,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -30,6 +31,9 @@ from threedi_models_simulations.utils.msgpack import loadb
 from threedi_models_simulations.utils.threedi_api import (
     fetch_model_initial_waterlevels,
     fetch_model_initial_waterlevels_download,
+)
+from threedi_models_simulations.widgets.new_simulation_wizard_pages.utils.duplicate_node_dialog import (
+    DuplicateNodeDialog,
 )
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.wizard_page import (
     WizardPage,
@@ -230,8 +234,8 @@ class InitialConditions1DPage(WizardPage):
             "Comma-separated values (*.csv *.txt)",
         )
 
-        node_ids = []
-        values = []
+        new_node_ids = []
+        new_values = []
 
         # load the csv
         with open(file_name, encoding="utf-8-sig") as csvfile:
@@ -266,8 +270,8 @@ class InitialConditions1DPage(WizardPage):
                 try:
                     node_id = int(node_id_str)
                     value = float(value_str)
-                    node_ids.append(node_id)
-                    values.append(value)
+                    new_node_ids.append(node_id)
+                    new_values.append(value)
                 except ValueError:
                     self.communication.show_warn(
                         f"Invalid data format in CSV: id='{node_id_str}', value='{value_str}'",
@@ -277,7 +281,25 @@ class InitialConditions1DPage(WizardPage):
                     return
 
         # Show duplicate node dialog with new data and currently loaded data
-        return
+        current_node_ids, current_values = self._retrieve_current_nodes()
+        d_dialog = DuplicateNodeDialog(
+            current_node_ids, current_values, new_node_ids, new_values, self
+        )
+        if d_dialog.exec() == QDialog.DialogCode.Accepted:
+            # set new values in UI
+            pass
+
+    def _retrieve_current_nodes(self):
+        current_node_ids = []
+        current_values = []
+
+        for row in range(self.table.rowCount()):
+            node_id = int(self.table.item(row, 0).text())
+            value = float(self.table.item(row, 1).text())
+            current_node_ids.append(node_id)
+            current_values.append(value)
+
+        return current_node_ids, current_values
 
     def delete(self, idx):
         pass
