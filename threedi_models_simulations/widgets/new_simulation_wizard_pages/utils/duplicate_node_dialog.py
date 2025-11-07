@@ -89,7 +89,7 @@ class DuplicateNodeDialog(QDialog):
         assert len(new_node_ids) == len(new_values)
 
         # Find duplicate indexes and values
-        duplicate_idxs = np.arange(len(new_node_ids))[
+        self.duplicate_idxs = np.arange(len(new_node_ids))[
             np.in1d(new_node_ids, current_node_ids)
         ]
 
@@ -116,8 +116,7 @@ class DuplicateNodeDialog(QDialog):
             item = QTableWidgetItem()
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
 
-            if idx in duplicate_idxs:
-                contains_duplicates = True
+            if idx in self.duplicate_idxs:
                 node_item.setBackground(duplicate_color)
                 value_item.setBackground(duplicate_color)
 
@@ -136,14 +135,14 @@ class DuplicateNodeDialog(QDialog):
         duplicate_frame.setFrameShadow(QFrame.Raised)
         duplicate_layout = QGridLayout()
         duplicate_frame.setLayout(duplicate_layout)
+        if len(self.duplicate_idxs) == 0:
+            duplicate_frame.hide()
 
         label = ColorIndicatorLabel(
             "Item already present in current table", duplicate_color, duplicate_frame
         )
         label.setFixedWidth(210)
         duplicate_layout.addWidget(label, 0, 0)
-        if not contains_duplicates:
-            label.hide()
 
         duplicate_layout.addItem(
             QSpacerItem(200, 20, QSizePolicy.Expanding, QSizePolicy.Minimum), 0, 1
@@ -156,7 +155,7 @@ class DuplicateNodeDialog(QDialog):
 
         message_label = QLabel(
             "Warning: the file contains nodes with different values than currently in the table. These will be overwritten when not deselected.",
-            self,
+            duplicate_frame,
         )
         message_label.setStyleSheet(
             "background-color: #FFD27E; border: 1px solid orange; border-radius: 5px;"
@@ -180,9 +179,11 @@ class DuplicateNodeDialog(QDialog):
         self.resize(600, 600)
 
     def toggle_duplicates(self):
+        # Iterate over rows, check whether id is in duplicates -> toggles
         pass
 
     def collect_nodes(self):
+        # Iterate over rows, collect checked values
         self.accept()
 
     def eventFilter(self, obj, event):
