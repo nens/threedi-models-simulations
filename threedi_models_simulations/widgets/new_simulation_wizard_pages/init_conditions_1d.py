@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import tempfile
 
@@ -34,6 +35,8 @@ from threedi_models_simulations.utils.general import (
 )
 from threedi_models_simulations.utils.msgpack import loadb
 from threedi_models_simulations.utils.threedi_api import (
+    fetch_3di_model_initial_concentrations,
+    fetch_model_initial_concentrations_download,
     fetch_model_initial_waterlevels,
     fetch_model_initial_waterlevels_download,
 )
@@ -86,7 +89,6 @@ class InitialConditions1DPage(WizardPage):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        # self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.table.customContextMenuRequested.connect(self.menu_requested_level)
         self.table.cellChanged.connect(self.cell_changed)
@@ -128,6 +130,15 @@ class InitialConditions1DPage(WizardPage):
         self.initial_waterlevels_1d = [
             iw for iw in initial_waterlevels if (iw.dimension == "one_d" and iw.file)
         ]
+
+        initial_concentrations = fetch_3di_model_initial_concentrations(
+            self.threedi_api, self.new_sim.simulation.threedimodel_id
+        )
+        self.initial_concentrations_1d = [
+            ic for ic in initial_concentrations if (ic.dimension == "one_d" and ic.file)
+        ]
+        if self.initial_concentrations_1d:
+            self.load_online_concentration_in_table(self.initial_concentrations_1d[0])
 
     def initializePage(self):
         # Constant
@@ -225,7 +236,7 @@ class InitialConditions1DPage(WizardPage):
     def load_online_waterlevel_in_table(self, level):
         download = fetch_model_initial_waterlevels_download(
             self.threedi_api,
-            self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
+            level.id,
             self.new_sim.simulation.threedimodel_id,
         )
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -249,6 +260,21 @@ class InitialConditions1DPage(WizardPage):
             # - The unit is percent
             # - The concentration lasts for the whole forcing
             # - Concentration is always 100%
+
+    def load_online_concentration_in_table(self, conc):
+        download = fetch_model_initial_concentrations_download(
+            self.threedi_api,
+            conc.id,
+            self.new_sim.simulation.threedimodel_id,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, str(conc.id) + ":" + conc.file.filename)
+            get_download_file(download, file_path)
+            with open(file_path, "rb") as data_file:
+                data_str = data_file.read().decode("utf-8")
+                result = json.loads(data_str)
+                data = np.column_stack((result["node_ids"], result["values"]))
+                QgsMessageLog.logMessage(str(data))
 
     def online_file_changed(self, idx):
         if self.table.rowCount() != 0:
@@ -404,8 +430,13 @@ class InitialConditions1DPage(WizardPage):
 
     def validatePage(self):
         # store model
+        # dont forget to store waterlevel ids etc if required
         return True
 
     def isComplete(self):
-        # validate
+        # validate level
+
+        # validate concentration
+        # does node exist, value ok
+
         return True
