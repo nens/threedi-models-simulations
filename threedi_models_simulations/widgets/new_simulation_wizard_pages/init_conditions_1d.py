@@ -26,6 +26,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.utils.general import (
     IntDelegate,
     ScientificDoubleDelegate,
@@ -74,6 +75,7 @@ class InitialConditions1DPage(WizardPage):
         self.online_value_cb = QCheckBox("Select online file", main_widget)
         self.online_value_cb.toggled.connect(self.online_checked)
         self.online_value_cob = QComboBox(main_widget)
+        self.online_value_cob.activated.connect(self.online_file_changed)
 
         layout.addWidget(self.online_value_cb, 1, 0)
         layout.addWidget(self.online_value_cob, 1, 1, 1, 3)
@@ -146,6 +148,9 @@ class InitialConditions1DPage(WizardPage):
                 str(level.id) + ":" + level.file.filename, level
             )
 
+        if not self.initial_waterlevels_1d:
+            self.online_value_cb.setEnabled(False)
+
         for level in self.initial_waterlevels_1d:
             if (
                 level.id
@@ -182,16 +187,17 @@ class InitialConditions1DPage(WizardPage):
 
     def online_checked(self, toggled):
         if not toggled:
-            # TODO: Remove the values, if required
             self.online_value_cob.clear()
             self.online_value_cob.setEnabled(False)
         else:
             self.online_value_cob.setEnabled(True)
+            self.online_value_cob.clear()
             for level in self.initial_waterlevels_1d:
                 self.online_value_cob.addItem(
                     str(level.id) + ":" + level.file.filename, level
                 )
 
+            # Set it to the right initial values
             for level in self.initial_waterlevels_1d:
                 if (
                     level.id
@@ -200,41 +206,60 @@ class InitialConditions1DPage(WizardPage):
                     self.online_value_cob.setCurrentText(
                         str(level.id) + ":" + level.file.filename
                     )
+
+                    # Retrieve the data and add the values
+                    if self.table.rowCount() != 0:
+                        if UICommunication.ask(
+                            self,
+                            "Online file changed",
+                            "Selecting another online waterlevel instance will clear the table, continue?",
+                        ):
+                            self.table.setRowCount(0)
+                            self.load_online_waterlevel_in_table(level)
+                        else:
+                            self.online_value_cb.setChecked(False)
+                    else:
+                        self.load_online_waterlevel_in_table(level)
                     break
 
-            # Retrieve the data and add the values
-            # TODO: caching
-            if self.new_sim.initial_1d_water_level_file:
-                download = fetch_model_initial_waterlevels_download(
-                    self.threedi_api,
-                    self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
-                    self.new_sim.simulation.threedimodel_id,
-                )
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    file_path = os.path.join(
-                        tmpdir, str(level.id) + ":" + level.file.filename
+    def load_online_waterlevel_in_table(self, level):
+        download = fetch_model_initial_waterlevels_download(
+            self.threedi_api,
+            self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
+            self.new_sim.simulation.threedimodel_id,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, str(level.id) + ":" + level.file.filename)
+            get_download_file(download, file_path)
+            with open(file_path, "rb") as data_file:
+                byte_data = data_file.read()
+                result = loadb(byte_data)
+                data = np.column_stack((result["node_ids"], result["value"]))
+                for pair in data:
+                    row_position = self.table.rowCount()
+                    self.table.blockSignals(True)
+                    self.table.insertRow(row_position)
+                    self.table.setItem(
+                        row_position, 0, QTableWidgetItem(str(int(pair[0])))
                     )
-                    get_download_file(download, file_path)
-                    with open(file_path, "rb") as data_file:
-                        byte_data = data_file.read()
-                        result = loadb(byte_data)
-                        data = np.column_stack((result["node_ids"], result["value"]))
-                        for pair in data:
-                            row_position = self.table.rowCount()
-                            self.table.blockSignals(True)
-                            self.table.insertRow(row_position)
-                            self.table.setItem(
-                                row_position, 0, QTableWidgetItem(str(int(pair[0])))
-                            )
-                            self.table.setItem(
-                                row_position, 1, QTableWidgetItem(str(pair[1]))
-                            )
-                            self.table.blockSignals(False)
+                    self.table.setItem(row_position, 1, QTableWidgetItem(str(pair[1])))
+                    self.table.blockSignals(False)
 
             # Retrieve possible labels, a substance is a label when
             # - The unit is percent
             # - The concentration lasts for the whole forcing
             # - Concentration is always 100%
+
+    def online_file_changed(self, idx):
+        if self.table.rowCount() != 0:
+            if UICommunication.ask(
+                self,
+                "Online file changed",
+                "Selecting another online waterlevel instance will clear the table, continue?",
+            ):
+                self.table.setRowCount(0)
+                current_level = self.online_value_cob.currentData()
+                self.load_online_waterlevel_in_table(current_level)
 
     def cell_changed(self, row, column):
         # When entered, check for duplicates
@@ -264,6 +289,13 @@ class InitialConditions1DPage(WizardPage):
         self.table.scrollToItem(item, QTableWidget.PositionAtBottom)
 
     def add_node_from_file(self):
+        # First retrieve the current values from the table
+        try:
+            current_node_ids, current_values = self._retrieve_current_nodes()
+        except Exception as e:
+            self.communication.show_warn(str(e), self, "Warning")
+            return
+
         file_name, __ = QFileDialog.getOpenFileName(
             self,
             "Open 1D initial waterlevel file",
@@ -318,15 +350,23 @@ class InitialConditions1DPage(WizardPage):
                     return
 
         # Show duplicate node dialog with new data and currently loaded data
-        current_node_ids, current_values = self._retrieve_current_nodes()
         d_dialog = DuplicateNodeDialog(
             current_node_ids, current_values, new_node_ids, new_values, self
         )
         last_added_item = None
         if d_dialog.exec() == QDialog.DialogCode.Accepted:
-            # Append new values in UI
-            new_data = d_dialog.get_new_data()
             self.table.blockSignals(True)
+            # Replace values that have to be overwritten
+            overwrite_data = d_dialog.get_overwrite_data()
+            for id, value in overwrite_data:
+                for row in range(self.table.rowCount()):
+                    node_id = int(self.table.item(row, 0).text())
+                    if node_id == id:
+                        self.table.item(row, 1).setText(str(value))
+
+            # Append new values in UI,
+            new_data = d_dialog.get_new_data()
+
             for pair in new_data:
                 row_position = self.table.rowCount()
                 self.table.insertRow(row_position)
@@ -334,16 +374,23 @@ class InitialConditions1DPage(WizardPage):
                 last_added_item = QTableWidgetItem(str(float(pair[1])))
                 self.table.setItem(row_position, 1, last_added_item)
             self.table.blockSignals(False)
-        if last_added_item:
-            self.table.scrollToItem(last_added_item, QTableWidget.PositionAtBottom)
+
+            if last_added_item:
+                self.table.scrollToItem(last_added_item, QTableWidget.PositionAtBottom)
 
     def _retrieve_current_nodes(self):
         current_node_ids = []
         current_values = []
 
         for row in range(self.table.rowCount()):
-            node_id = int(self.table.item(row, 0).text())
-            value = float(self.table.item(row, 1).text())
+            node_id_str = self.table.item(row, 0).text()
+            if not node_id_str:
+                raise Exception(f"Node at row {row + 1} not properly set.")
+            node_id = int(node_id_str)
+            value_str = self.table.item(row, 1).text()
+            if not value_str:
+                raise Exception(f"Value at row {row + 1} not properly set.")
+            value = float(value_str)
             current_node_ids.append(node_id)
             current_values.append(value)
 

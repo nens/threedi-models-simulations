@@ -47,10 +47,28 @@ class InitialConditions2DPage(WizardPage):
         aggregation_dd = QComboBox(self)
         layout.addWidget(aggregation_dd, 3, 1, 1, 2)
 
+        substances_gb = QGroupBox("Initial concentrations", self)
+        substances_layout = QGridLayout()
+        substances_gb.setLayout(substances_layout)
+
+        online_rb_sub = QRadioButton("Online raster", substances_gb)
+        substances_layout.addWidget(online_rb_sub, 1, 0)
+        online_dd_sub = QComboBox(substances_gb)
+        substances_layout.addWidget(online_dd_sub, 1, 1, 1, 2)
+        local_rb_sub = QRadioButton("Local raster", substances_gb)
+        substances_layout.addWidget(local_rb_sub, 2, 0)
+        local_dd_sub = QComboBox(substances_gb)
+        substances_layout.addWidget(local_dd_sub, 2, 1, 1, 2)
+        substances_layout.addWidget(QLabel("Aggregation method", substances_gb), 3, 0)
+        aggregation_dd_sub = QComboBox(substances_gb)
+        substances_layout.addWidget(aggregation_dd_sub, 3, 1, 1, 2)
+
+        layout.addWidget(substances_gb, 4, 0, 1, 3)
+
         vertical_spacer = QSpacerItem(
             20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
         )
-        layout.addItem(vertical_spacer, 4, 0)
+        layout.addItem(vertical_spacer, 5, 0)
 
     def initializePage(self):
         pass

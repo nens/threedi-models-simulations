@@ -71,6 +71,7 @@ class DuplicateNodeDialog(QDialog):
         self.setLayout(layout)
 
         self.new_data = []
+        self.overwrite_data = []
 
         self.table = QTableWidget(self)
         self.table.setColumnCount(4)
@@ -82,7 +83,6 @@ class DuplicateNodeDialog(QDialog):
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.ExtendedSelection)
-        # self.table.customContextMenuRequested.connect(self.menu_requested)
         self.table.installEventFilter(self)
 
         delegate = ScientificDoubleDelegate(self.table, decimals=2)
@@ -93,10 +93,17 @@ class DuplicateNodeDialog(QDialog):
         assert len(current_node_ids) == len(current_values)
         assert len(new_node_ids) == len(new_values)
 
-        # Find duplicate indexes and values
-        self.duplicate_idxs = np.arange(len(new_node_ids))[
+        # Find duplicate indexes in new_node_ids
+        duplicate_idxs_in_new_node_ids = np.arange(len(new_node_ids))[
             np.in1d(new_node_ids, current_node_ids)
         ]
+
+        # Maps duplicate row/index in dialog table to table row/index
+        self.duplicate_idx_mapping = {}
+        for duplicate_idx_in_new_node in duplicate_idxs_in_new_node_ids:
+            id = new_node_ids[duplicate_idx_in_new_node]
+            current_node_idx = current_node_ids.index(id)
+            self.duplicate_idx_mapping[duplicate_idx_in_new_node] = current_node_idx
 
         duplicate_color = QColor("#FFD27E")
 
@@ -120,11 +127,13 @@ class DuplicateNodeDialog(QDialog):
             item = QTableWidgetItem()
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
 
-            if idx in self.duplicate_idxs:
+            if idx in self.duplicate_idx_mapping:
                 node_item.setBackground(duplicate_color)
                 value_item.setBackground(duplicate_color)
 
-                item = QTableWidgetItem(str(current_values[idx]))
+                item = QTableWidgetItem(
+                    str(current_values[self.duplicate_idx_mapping[idx]])
+                )
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 item.setBackground(duplicate_color)
 
@@ -139,7 +148,7 @@ class DuplicateNodeDialog(QDialog):
         duplicate_frame.setFrameShadow(QFrame.Raised)
         duplicate_layout = QGridLayout()
         duplicate_frame.setLayout(duplicate_layout)
-        if len(self.duplicate_idxs) == 0:
+        if len(self.duplicate_idx_mapping) == 0:
             duplicate_frame.hide()
 
         label = ColorIndicatorLabel(
@@ -188,24 +197,32 @@ class DuplicateNodeDialog(QDialog):
     def toggle_duplicates(self, checked):
         # Iterate over rows, check whether id is in duplicates -> toggle
         for row in range(self.table.rowCount()):
-            if row in self.duplicate_idxs:
+            if row in self.duplicate_idx_mapping:
                 check_item = self.table.item(row, 0)
                 check_item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
     def collect_nodes(self):
         self.new_data = []
+        self.overwrite_data = []
+
         # Iterate over rows, collect checked values
         for row in range(self.table.rowCount()):
             check_item = self.table.item(row, 0)
             if check_item.checkState() == Qt.Checked:
-                idx = int(self.table.item(row, 1).text())
                 new_value = float(self.table.item(row, 2).text())
-                self.new_data.append((idx, new_value))
+                id = int(self.table.item(row, 1).text())
+                if row in self.duplicate_idx_mapping:
+                    self.overwrite_data.append((id, new_value))
+                else:
+                    self.new_data.append((id, new_value))
 
         self.accept()
 
     def get_new_data(self) -> List[Tuple[int, float]]:
         return self.new_data
+
+    def get_overwrite_data(self) -> List[Tuple[int, float]]:
+        return self.overwrite_data
 
     def eventFilter(self, obj, event):
         if obj == self.table and event.type() == QEvent.KeyPress:
