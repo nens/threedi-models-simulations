@@ -84,7 +84,8 @@ class InitialConditions1DPage(WizardPage):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SingleSelection)
+        # self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.table.customContextMenuRequested.connect(self.menu_requested_level)
         self.table.cellChanged.connect(self.cell_changed)
         float_delegate = ScientificDoubleDelegate(self.table, bottom=0.0, decimals=2)
@@ -129,12 +130,12 @@ class InitialConditions1DPage(WizardPage):
     def initializePage(self):
         # Constant
         if self.new_sim.initial_1d_water_level:
-            self.constant_checked(True)
+            self.constant_value_cb.setChecked(True)
             self.constant_value_le.setText(
                 str(self.new_sim.initial_1d_water_level.value)
             )
         else:
-            self.constant_checked(False)
+            self.constant_value_cb.setChecked(False)
             self.constant_value_le.clear()
 
         # File
@@ -165,7 +166,7 @@ class InitialConditions1DPage(WizardPage):
         index = self.table.indexAt(pos)
         menu = QMenu(self)
         action_stop = QAction("Delete", self)
-        action_stop.triggered.connect(lambda _, sel_index=index: self.delete(sel_index))
+        action_stop.triggered.connect(lambda _, sel_index=index: self.delete())
         menu.addAction(action_stop)
         menu.popup(self.table.viewport().mapToGlobal(pos))
 
@@ -203,31 +204,32 @@ class InitialConditions1DPage(WizardPage):
 
             # Retrieve the data and add the values
             # TODO: caching
-            download = fetch_model_initial_waterlevels_download(
-                self.threedi_api,
-                self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
-                self.new_sim.simulation.threedimodel_id,
-            )
-            with tempfile.TemporaryDirectory() as tmpdir:
-                file_path = os.path.join(
-                    tmpdir, str(level.id) + ":" + level.file.filename
+            if self.new_sim.initial_1d_water_level_file:
+                download = fetch_model_initial_waterlevels_download(
+                    self.threedi_api,
+                    self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
+                    self.new_sim.simulation.threedimodel_id,
                 )
-                get_download_file(download, file_path)
-                with open(file_path, "rb") as data_file:
-                    byte_data = data_file.read()
-                    result = loadb(byte_data)
-                    data = np.column_stack((result["node_ids"], result["value"]))
-                    for pair in data:
-                        row_position = self.table.rowCount()
-                        self.table.blockSignals(True)
-                        self.table.insertRow(row_position)
-                        self.table.setItem(
-                            row_position, 0, QTableWidgetItem(str(int(pair[0])))
-                        )
-                        self.table.setItem(
-                            row_position, 1, QTableWidgetItem(str(pair[1]))
-                        )
-                        self.table.blockSignals(False)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    file_path = os.path.join(
+                        tmpdir, str(level.id) + ":" + level.file.filename
+                    )
+                    get_download_file(download, file_path)
+                    with open(file_path, "rb") as data_file:
+                        byte_data = data_file.read()
+                        result = loadb(byte_data)
+                        data = np.column_stack((result["node_ids"], result["value"]))
+                        for pair in data:
+                            row_position = self.table.rowCount()
+                            self.table.blockSignals(True)
+                            self.table.insertRow(row_position)
+                            self.table.setItem(
+                                row_position, 0, QTableWidgetItem(str(int(pair[0])))
+                            )
+                            self.table.setItem(
+                                row_position, 1, QTableWidgetItem(str(pair[1]))
+                            )
+                            self.table.blockSignals(False)
 
             # Retrieve possible labels, a substance is a label when
             # - The unit is percent
@@ -347,9 +349,11 @@ class InitialConditions1DPage(WizardPage):
 
         return current_node_ids, current_values
 
-    def delete(self, idx):
-        # TODO
-        pass
+    def delete(self):
+        selected_rows = list(set(index.row() for index in self.table.selectedIndexes()))
+        selected_rows.sort(reverse=True)
+        for row in selected_rows:
+            self.table.removeRow(row)
 
     def validatePage(self):
         # store model
