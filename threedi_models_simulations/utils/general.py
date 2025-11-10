@@ -8,7 +8,7 @@ from uuid import uuid4
 import requests
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtCore import QLocale, QSettings, Qt
-from qgis.PyQt.QtGui import QDoubleValidator, QPen
+from qgis.PyQt.QtGui import QDoubleValidator, QIntValidator, QPen
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -318,3 +318,27 @@ class ScientificDoubleDelegate(QStyledItemDelegate):
         # Optional: normalize 'E' to 'e'
         text = text.replace("E", "e")
         model.setData(index, text)
+
+
+class IntDelegate(QStyledItemDelegate):
+    """A delegate that allows integer input only."""
+
+    def __init__(self, parent=None, bottom=-1_000_000_000, top=1_000_000_000):
+        super().__init__(parent)
+        self.bottom = bottom
+        self.top = top
+
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        validator = QIntValidator(self.bottom, self.top, parent)
+        editor.setValidator(validator)
+        editor.setAlignment(Qt.AlignRight)
+        return editor
+
+    def setModelData(self, editor, model, index):
+        """Ensure text is stored consistently (trimmed, no extra whitespace)."""
+        text = editor.text().strip()
+        # Convert empty to zero or leave blank, depending on preference
+        if text == "":
+            text = "0"
+        model.setData(index, int(text))

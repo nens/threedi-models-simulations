@@ -26,7 +26,11 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
-from threedi_models_simulations.utils.general import get_download_file
+from threedi_models_simulations.utils.general import (
+    IntDelegate,
+    ScientificDoubleDelegate,
+    get_download_file,
+)
 from threedi_models_simulations.utils.msgpack import loadb
 from threedi_models_simulations.utils.threedi_api import (
     fetch_model_initial_waterlevels,
@@ -82,6 +86,11 @@ class InitialConditions1DPage(WizardPage):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.customContextMenuRequested.connect(self.menu_requested_level)
+        self.table.cellChanged.connect(self.cell_changed)
+        float_delegate = ScientificDoubleDelegate(self.table, bottom=0.0, decimals=2)
+        int_delegate = IntDelegate(self.table, bottom=0)
+        self.table.setItemDelegateForColumn(1, float_delegate)
+        self.table.setItemDelegateForColumn(0, int_delegate)
         self.table.setEnabled(True)
         layout.addWidget(self.table, 2, 0, 4, 4)
 
@@ -218,6 +227,25 @@ class InitialConditions1DPage(WizardPage):
                             row_position, 1, QTableWidgetItem(str(pair[1]))
                         )
 
+    def cell_changed(self, row, column):
+        # When entered, check for duplicates
+        if column == 0:
+            node_id_str = self.table.item(row, column).text()
+            if node_id_str:
+                node_id = int(self.table.item(row, 0).text())
+                for check_row in range(self.table.rowCount()):
+                    if check_row != row:
+                        if int(self.table.item(check_row, 0).text()) == node_id:
+                            self.communication.show_warn(
+                                f"Node {node_id} already present at row {check_row + 1}.",
+                                self,
+                                "Warning",
+                            )
+                            self.table.blockSignals(True)
+                            self.table.item(row, 0).setText("")
+                            self.table.blockSignals(False)
+                            return
+
     def add_node(self):
         row = self.table.rowCount()
         self.table.insertRow(row)
@@ -311,6 +339,7 @@ class InitialConditions1DPage(WizardPage):
         return current_node_ids, current_values
 
     def delete(self, idx):
+        # TODO
         pass
 
     def validatePage(self):
