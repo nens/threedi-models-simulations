@@ -255,6 +255,10 @@ def load_template_in_model(
         new_sim.initial_1d_substance_concentrations = (
             events.initial_oned_substance_concentrations
         )
+        QgsMessageLog.logMessage("--------------------------", level=Qgis.Critical)
+        QgsMessageLog.logMessage(
+            str(events.initial_oned_substance_concentrations), level=Qgis.Critical
+        )
 
         new_sim.initial_2d_water_level_raster = events.initial_twodwaterraster
         if events.initial_twodwaterraster:

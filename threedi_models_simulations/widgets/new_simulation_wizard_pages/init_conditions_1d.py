@@ -123,7 +123,7 @@ class InitialConditions1DPage(WizardPage):
             self.threedi_api, self.new_sim.simulation.threedimodel_id
         )
         self.initial_waterlevels_1d = [
-            iw for iw in initial_waterlevels if iw.dimension == "one_d"
+            iw for iw in initial_waterlevels if (iw.dimension == "one_d" and iw.file)
         ]
 
     def initializePage(self):
@@ -219,6 +219,7 @@ class InitialConditions1DPage(WizardPage):
                     data = np.column_stack((result["node_ids"], result["value"]))
                     for pair in data:
                         row_position = self.table.rowCount()
+                        self.table.blockSignals(True)
                         self.table.insertRow(row_position)
                         self.table.setItem(
                             row_position, 0, QTableWidgetItem(str(int(pair[0])))
@@ -226,6 +227,12 @@ class InitialConditions1DPage(WizardPage):
                         self.table.setItem(
                             row_position, 1, QTableWidgetItem(str(pair[1]))
                         )
+                        self.table.blockSignals(False)
+
+            # Retrieve possible labels, a substance is a label when
+            # - The unit is percent
+            # - The concentration lasts for the whole forcing
+            # - Concentration is always 100%
 
     def cell_changed(self, row, column):
         # When entered, check for duplicates
@@ -317,12 +324,14 @@ class InitialConditions1DPage(WizardPage):
         if d_dialog.exec() == QDialog.DialogCode.Accepted:
             # Append new values in UI
             new_data = d_dialog.get_new_data()
+            self.table.blockSignals(True)
             for pair in new_data:
                 row_position = self.table.rowCount()
                 self.table.insertRow(row_position)
                 self.table.setItem(row_position, 0, QTableWidgetItem(str(int(pair[0]))))
                 last_added_item = QTableWidgetItem(str(float(pair[1])))
                 self.table.setItem(row_position, 1, last_added_item)
+            self.table.blockSignals(False)
         if last_added_item:
             self.table.scrollToItem(last_added_item, QTableWidget.PositionAtBottom)
 
