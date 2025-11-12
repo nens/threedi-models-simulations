@@ -118,14 +118,10 @@ class InitializationPage(WizardPage):
         layout.addWidget(events_gb)
         layout.addWidget(self.wq_gb)
 
-    def initializePage(self):
+    def load_model(self):
         # Disable substance UI if not in organisation contract
         self.check_substance_contract()
 
-        # Update the UI based on the current model
-        self.update()
-
-    def update(self):
         ## INITIAL CONDITIONS
         if (
             self.new_sim.initial_1d_water_level
@@ -200,12 +196,15 @@ class InitializationPage(WizardPage):
 
         # leakage
 
-    def validatePage(self):
+    def save_model(self):
         # update model
         return True
 
-    def isComplete(self):
+    def is_complete(self):
         return True
+
+    def validate_page(self):
+        return self.is_complete()
 
     def check_substance_contract(self):
         contracts = fetch_contracts(

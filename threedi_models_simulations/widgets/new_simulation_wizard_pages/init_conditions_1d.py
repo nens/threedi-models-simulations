@@ -59,6 +59,7 @@ class InitialConditions1DPage(WizardPage):
         self.threedi_api = threedi_api
         self.communication = communication
         main_widget = self.get_page_widget()
+        self.first_load = True
 
         layout = QGridLayout()
         main_widget.setLayout(layout)
@@ -112,16 +113,18 @@ class InitialConditions1DPage(WizardPage):
         self.substance_table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.substance_table, 7, 0, 4, 4)
 
-        add_substance_row_pb = QPushButton("+ Add concentration", main_widget)
-        add_substance_from_file_pb = QPushButton("+ Add from local file", main_widget)
-        layout.addWidget(add_substance_row_pb, 11, 2)
-        layout.addWidget(add_substance_from_file_pb, 11, 3)
+        self.add_substance_row_pb = QPushButton("+ Add concentration", main_widget)
+        self.add_substance_from_file_pb = QPushButton(
+            "+ Add from local file", main_widget
+        )
+        layout.addWidget(self.add_substance_row_pb, 11, 2)
+        layout.addWidget(self.add_substance_from_file_pb, 11, 3)
 
         vertical_spacer = QSpacerItem(
             20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
         )
 
-        layout.addItem(vertical_spacer, 7, 0)
+        layout.addItem(vertical_spacer, 12, 0)
 
         # Already fetch some data
         initial_waterlevels = fetch_model_initial_waterlevels(
@@ -140,43 +143,53 @@ class InitialConditions1DPage(WizardPage):
         if self.initial_concentrations_1d:
             self.load_online_concentration_in_table(self.initial_concentrations_1d[0])
 
-    def initializePage(self):
-        # Constant
-        if self.new_sim.initial_1d_water_level:
-            self.constant_value_cb.setChecked(True)
-            self.constant_value_le.setText(
-                str(self.new_sim.initial_1d_water_level.value)
-            )
-        else:
-            self.constant_value_cb.setChecked(False)
-            self.constant_value_le.clear()
-
-        # File
-        self.online_value_cb.setChecked(False)
-        self.online_value_cob.clear()
-        for level in self.initial_waterlevels_1d:
-            self.online_value_cob.addItem(
-                str(level.id) + ":" + level.file.filename, level
-            )
-
-        if not self.initial_waterlevels_1d:
-            self.online_value_cb.setEnabled(False)
-
-        for level in self.initial_waterlevels_1d:
-            if (
-                level.id
-                == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
-            ):
-                self.online_value_cb.setChecked(True)
-                self.online_value_cob.setCurrentText(
-                    str(level.id) + ":" + level.file.filename
+    def load_model(self):
+        if self.first_load:
+            # Constant
+            if self.new_sim.initial_1d_water_level:
+                self.constant_value_cb.setChecked(True)
+                self.constant_value_le.setText(
+                    str(self.new_sim.initial_1d_water_level.value)
                 )
-                break
+            else:
+                self.constant_value_cb.setChecked(False)
+                self.constant_value_le.clear()
 
-        # Substances
+            # File
+            self.online_value_cb.setChecked(False)
+            self.online_value_cob.clear()
+            for level in self.initial_waterlevels_1d:
+                self.online_value_cob.addItem(
+                    str(level.id) + ":" + level.file.filename, level
+                )
+
+            if not self.initial_waterlevels_1d:
+                self.online_value_cb.setEnabled(False)
+
+            for level in self.initial_waterlevels_1d:
+                if (
+                    level.id
+                    == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
+                ):
+                    self.online_value_cb.setChecked(True)
+                    self.online_value_cob.setCurrentText(
+                        str(level.id) + ":" + level.file.filename
+                    )
+                    break
+
+        # Update substances table
         substance_names = [substance.name for substance in self.new_sim.substances]
-        self.substance_table.setColumnCount(1 + len(substance_names))
-        self.substance_table.setHorizontalHeaderLabels(["Node ID"] + substance_names)
+        if substance_names:
+            # TODO: take into account new substances (possible addition and removal)
+            self.substance_table.setColumnCount(1 + len(substance_names))
+            self.substance_table.setHorizontalHeaderLabels(
+                ["Node ID"] + substance_names
+            )
+            self.substance_table.setVisible(True)
+        else:
+            self.substance_table.setVisible(False)
+
+        self.first_load = False
 
     def menu_requested_level(self, pos):
         index = self.table.indexAt(pos)
@@ -428,12 +441,15 @@ class InitialConditions1DPage(WizardPage):
         for row in selected_rows:
             self.table.removeRow(row)
 
-    def validatePage(self):
+    def save_model(self):
         # store model
         # dont forget to store waterlevel ids etc if required
         return True
 
-    def isComplete(self):
+    def validate_page(self):
+        return self.is_complete()
+
+    def is_complete(self):
         # validate level
 
         # validate concentration

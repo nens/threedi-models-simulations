@@ -36,16 +36,21 @@ class NamePage(WizardPage):
         layout.addWidget(QLabel("Project", main_widget))
         self.project_le = QLineEdit(main_widget)
         self.project_le.setPlaceholderText("Project name (optional)")
+        self.project_le.textEdited.connect(self.completeChanged)
         layout.addWidget(self.project_le)
 
         layout.addWidget(QLabel("Tags", main_widget))
         self.tags_le = QLineEdit(main_widget)
         self.tags_le.setPlaceholderText("Comma-separated tags (optional)")
+        self.tags_le.textEdited.connect(self.completeChanged)
         layout.addWidget(self.tags_le)
 
         layout.addStretch()
 
-    def initializePage(self):
+    def validate_page(self):
+        return self.is_complete()
+
+    def load_model(self):
         self.name_le.setText(self.new_sim.simulation.name)
         # Note that project names are actually tags starting with "project:"
         tags_list = []
@@ -57,7 +62,8 @@ class NamePage(WizardPage):
 
         self.tags_le.setText(",".join(tags_list))
 
-    def validatePage(self):
+    def save_model(self):
+        # Save to model
         self.new_sim.simulation.name = self.name_le.text()
         self.new_sim.simulation.tags = [
             tag.strip() for tag in self.tags_le.text().split(",")
@@ -65,12 +71,7 @@ class NamePage(WizardPage):
         if self.project_le.text():
             self.new_sim.simulation.tags.append("project:" + self.project_le.text())
 
-        # as the tags have been cleaned up, reinitialize the UI components
-        self.initializePage()
-
-        return True
-
-    def isComplete(self):
+    def is_complete(self):
         if len(self.name_le.text()) >= 1:
             return True
         return False

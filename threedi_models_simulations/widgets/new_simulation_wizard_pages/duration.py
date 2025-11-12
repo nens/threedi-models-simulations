@@ -96,7 +96,7 @@ class DurationPage(WizardPage):
 
         layout.addStretch()
 
-    def initializePage(self):
+    def load_model(self):
         # Fill the page with the current model, this is in UTC
         start_datetime = self.new_sim.simulation.start_datetime.strftime(
             r"%Y-%m-%dT%H:%M"
@@ -111,18 +111,20 @@ class DurationPage(WizardPage):
 
         self.time_zone_cb.setCurrentText(self.NO_TIMEZONE_DISPLAY_NAME)
 
-        self.update_time_difference()
+        # self.update_time_difference()
 
         return
 
-    def validatePage(self):
+    def save_model(self):
         # to_datetime() converts to UTC
         start, end = self.to_datetime()
         self.new_sim.simulation.start_datetime = start
         self.new_sim.simulation.end_datetime = end
-        return True
 
-    def isComplete(self):
+    def validate_page(self):
+        return self.is_complete()
+
+    def is_complete(self):
         if self.calculate_simulation_duration() == 0.0:
             return False
         return True

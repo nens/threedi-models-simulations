@@ -105,7 +105,7 @@ class SubstancesPage(WizardPage):
         )
         self.completeChanged.emit()
 
-    def initializePage(self):
+    def load_model(self):
         self.substance_table.clearContents()
         self.substance_table.setColumnCount(4)
         self.substance_table.setRowCount(0)
@@ -131,7 +131,7 @@ class SubstancesPage(WizardPage):
                 QTableWidgetItem(str(substance.diffusion_coefficient)),
             )
 
-    def validatePage(self):
+    def save_model(self):
         # Here we update the model, we already know everything is valid (otherwise the next button would not be enabled)
         self.new_sim.substances.clear()
         for row in range(self.substance_table.rowCount()):
@@ -149,11 +149,14 @@ class SubstancesPage(WizardPage):
 
         return True
 
-    def isComplete(self):
+    def is_complete(self):
         new_state = self.check(self._show_warnings)
         if self._show_warnings:
             self._show_warnings = False
         return new_state
+
+    def validate_page(self):
+        return self.is_complete()
 
     def check(self, update_ui: bool):
         for row in range(self.substance_table.rowCount()):

@@ -1,5 +1,6 @@
 import os
 
+from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFont, QPixmap, QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import QWizard
@@ -41,6 +42,11 @@ class SimulationWizard(QWizard):
             QWizard.WizardPixmap.LogoPixmap,
             QPixmap(os.path.join(ICONS_DIR, "logo.svg")),
         )
+
+        self.backPressed = False
+        back_button = self.button(QWizard.WizardButton.BackButton)
+        back_button.clicked.connect(self.on_back_clicked)
+
         self.currentIdChanged.connect(self.page_changed)
 
         self.tree_model = QStandardItemModel(self)
@@ -110,7 +116,7 @@ class SimulationWizard(QWizard):
 
         self.resize(800, 700)
 
-    def page_changed(self):
+    def page_changed(self, newId: int):
         """Update the step widget of the current page"""
 
         current_page = self.currentPage()
@@ -121,6 +127,11 @@ class SimulationWizard(QWizard):
                 SimulationWizard.set_items_bold_by_data(self.tree_model, current_page)
                 current_page.get_steps_tree().setModel(self.tree_model)
                 current_page.get_steps_tree().expandAll()
+
+    def on_back_clicked(self):
+        # The user went back, needs to be reset in the page's isComplete
+        QgsMessageLog.logMessage("self.backPressed = True")
+        self.backPressed = True
 
     @staticmethod
     def set_items_bold_by_data(model, value):
