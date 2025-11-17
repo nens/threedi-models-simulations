@@ -7,6 +7,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QTreeView,
     QVBoxLayout,
+    QWizard,
     QWizardPage,
 )
 
@@ -75,24 +76,27 @@ class WizardPage(QWizardPage):
             if UICommunication.ask(
                 self,
                 "Back pressed",
-                "All changes will be lost when going back, would you like to save the current changes?",
+                "Changes will be lost when going back, would you like to save the current changes?",
             ):
                 self.save_model()
 
     def cleanupPage(self):
-        QgsMessageLog.logMessage(str(self.__class__) + "cleanup")
+        # QgsMessageLog.logMessage(str(self.__class__) + "cleanup")
         if self.back_requires_save():
             self.save_model()
 
     def initializePage(self):
-        QgsMessageLog.logMessage(str(self.__class__) + "initializePage")
+        # QgsMessageLog.logMessage(str(self.__class__) + "initializePage")
         self.load_model()
-        QgsMessageLog.logMessage(str(self.__class__) + "0 self.dirty = False")
+        # QgsMessageLog.logMessage(str(self.__class__) + "0 self.dirty = False")
         self.dirty = False
         self.initializing = True
 
     @property
     def dirty(self):
+        if not self.wizard():
+            return self._dirty
+
         return self._dirty and not self.wizard().backPressed
 
     @dirty.setter
@@ -107,26 +111,28 @@ class WizardPage(QWizardPage):
         if not valid:
             return False
         self.save_model()
-        QgsMessageLog.logMessage(str(self.__class__) + "1 self.dirty = False")
+        # QgsMessageLog.logMessage(str(self.__class__) + "1 self.dirty = False")
         self.dirty = False
         return True
 
     def isComplete(self):
         if not self.wizard():
-            return self.is_complete()
+            complete = self.is_complete()
+            if not complete:
+                return False
 
         # isComplete is also called when the user pressed back on the next page
         if self.wizard().backPressed or self.initializing:
-            QgsMessageLog.logMessage(str(self.__class__) + "3 self.dirty = False")
+            # QgsMessageLog.logMessage(str(self.__class__) + "3 self.dirty = False")
             self.dirty = False
             if self.wizard().backPressed:
-                QgsMessageLog.logMessage(str(self.__class__) + "backpressed=false")
+                # QgsMessageLog.logMessage(str(self.__class__) + "backpressed=false")
                 self.wizard().backPressed = False
             if self.initializing:
-                QgsMessageLog.logMessage(str(self.__class__) + "initializing=false")
+                # QgsMessageLog.logMessage(str(self.__class__) + "initializing=false")
                 self.initializing = False
         else:
-            QgsMessageLog.logMessage(str(self.__class__) + "-1 self.dirty = True")
+            # QgsMessageLog.logMessage(str(self.__class__) + "-1 self.dirty = True")
             self.dirty = True
 
         return self.is_complete()
@@ -140,9 +146,13 @@ class WizardPage(QWizardPage):
         raise NotImplementedError("Subclasses must implement load_model()")
 
     def validate_page(self):
-        # When the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next page is
+        # When the user clicks Next or Finish to perform some last-minute validation. If it returns true, the next or previous page is
         # shown (or the wizard finishes); otherwise, the current page stays up.
         raise NotImplementedError("Subclasses must implement validate_page()")
+
+    def validate_back(self):
+        # When the user clicks Back, perform some last-minute validation. If it returns true, the previous page is shown
+        raise NotImplementedError("Subclasses must implement validate_back()")
 
     def is_complete(self):
         # We also need to emit the QWizardPage::completeChanged() signal every time isComplete() may potentially return a different value,

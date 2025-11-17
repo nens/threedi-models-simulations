@@ -59,7 +59,6 @@ class InitialConditions1DPage(WizardPage):
         self.threedi_api = threedi_api
         self.communication = communication
         main_widget = self.get_page_widget()
-        self.first_load = True
 
         layout = QGridLayout()
         main_widget.setLayout(layout)
@@ -144,38 +143,37 @@ class InitialConditions1DPage(WizardPage):
             self.load_online_concentration_in_table(self.initial_concentrations_1d[0])
 
     def load_model(self):
-        if self.first_load:
-            # Constant
-            if self.new_sim.initial_1d_water_level:
-                self.constant_value_cb.setChecked(True)
-                self.constant_value_le.setText(
-                    str(self.new_sim.initial_1d_water_level.value)
+        # Constant
+        if self.new_sim.initial_1d_water_level:
+            self.constant_value_cb.setChecked(True)
+            self.constant_value_le.setText(
+                str(self.new_sim.initial_1d_water_level.value)
+            )
+        else:
+            self.constant_value_cb.setChecked(False)
+            self.constant_value_le.clear()
+
+        # File
+        self.online_value_cb.setChecked(False)
+        self.online_value_cob.clear()
+        for level in self.initial_waterlevels_1d:
+            self.online_value_cob.addItem(
+                str(level.id) + ":" + level.file.filename, level
+            )
+
+        if not self.initial_waterlevels_1d:
+            self.online_value_cb.setEnabled(False)
+
+        for level in self.initial_waterlevels_1d:
+            if (
+                level.id
+                == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
+            ):
+                self.online_value_cb.setChecked(True)
+                self.online_value_cob.setCurrentText(
+                    str(level.id) + ":" + level.file.filename
                 )
-            else:
-                self.constant_value_cb.setChecked(False)
-                self.constant_value_le.clear()
-
-            # File
-            self.online_value_cb.setChecked(False)
-            self.online_value_cob.clear()
-            for level in self.initial_waterlevels_1d:
-                self.online_value_cob.addItem(
-                    str(level.id) + ":" + level.file.filename, level
-                )
-
-            if not self.initial_waterlevels_1d:
-                self.online_value_cb.setEnabled(False)
-
-            for level in self.initial_waterlevels_1d:
-                if (
-                    level.id
-                    == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
-                ):
-                    self.online_value_cb.setChecked(True)
-                    self.online_value_cob.setCurrentText(
-                        str(level.id) + ":" + level.file.filename
-                    )
-                    break
+                break
 
         # Update substances table
         substance_names = [substance.name for substance in self.new_sim.substances]
@@ -188,8 +186,6 @@ class InitialConditions1DPage(WizardPage):
             self.substance_table.setVisible(True)
         else:
             self.substance_table.setVisible(False)
-
-        self.first_load = False
 
     def menu_requested_level(self, pos):
         index = self.table.indexAt(pos)
@@ -246,6 +242,8 @@ class InitialConditions1DPage(WizardPage):
                         self.load_online_waterlevel_in_table(level)
                     break
 
+        self.completeChanged.emit()
+
     def load_online_waterlevel_in_table(self, level):
         download = fetch_model_initial_waterlevels_download(
             self.threedi_api,
@@ -274,6 +272,8 @@ class InitialConditions1DPage(WizardPage):
             # - The concentration lasts for the whole forcing
             # - Concentration is always 100%
 
+        self.completeChanged.emit()
+
     def load_online_concentration_in_table(self, conc):
         download = fetch_model_initial_concentrations_download(
             self.threedi_api,
@@ -300,6 +300,8 @@ class InitialConditions1DPage(WizardPage):
                 current_level = self.online_value_cob.currentData()
                 self.load_online_waterlevel_in_table(current_level)
 
+                self.completeChanged.emit()
+
     def cell_changed(self, row, column):
         # When entered, check for duplicates
         if column == 0:
@@ -319,6 +321,8 @@ class InitialConditions1DPage(WizardPage):
                             self.table.blockSignals(False)
                             return
 
+        self.completeChanged.emit()
+
     def add_node(self):
         row = self.table.rowCount()
         self.table.insertRow(row)
@@ -326,6 +330,7 @@ class InitialConditions1DPage(WizardPage):
         self.table.setItem(row, 0, item)
         self.table.setItem(row, 1, QTableWidgetItem(""))
         self.table.scrollToItem(item, QTableWidget.PositionAtBottom)
+        self.completeChanged.emit()
 
     def add_node_from_file(self):
         # First retrieve the current values from the table
@@ -417,6 +422,8 @@ class InitialConditions1DPage(WizardPage):
             if last_added_item:
                 self.table.scrollToItem(last_added_item, QTableWidget.PositionAtBottom)
 
+        self.completeChanged.emit()
+
     def _retrieve_current_nodes(self):
         current_node_ids = []
         current_values = []
@@ -441,9 +448,13 @@ class InitialConditions1DPage(WizardPage):
         for row in selected_rows:
             self.table.removeRow(row)
 
+        self.completeChanged.emit()
+
     def save_model(self):
         # store model
         # dont forget to store waterlevel ids etc if required
+
+        # We store the column values
         return True
 
     def validate_page(self):

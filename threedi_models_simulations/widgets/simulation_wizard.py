@@ -42,10 +42,12 @@ class SimulationWizard(QWizard):
             QWizard.WizardPixmap.LogoPixmap,
             QPixmap(os.path.join(ICONS_DIR, "logo.svg")),
         )
+        self.communication = communication
 
         self.backPressed = False
-        back_button = self.button(QWizard.WizardButton.BackButton)
-        back_button.clicked.connect(self.on_back_clicked)
+        self.button(QWizard.WizardButton.BackButton).clicked.connect(
+            self.on_back_clicked
+        )
 
         self.currentIdChanged.connect(self.page_changed)
 
@@ -118,6 +120,11 @@ class SimulationWizard(QWizard):
 
     def page_changed(self, newId: int):
         """Update the step widget of the current page"""
+        # Again, a hack to capture the back button (QWizard connects it at first show)
+        self.button(QWizard.WizardButton.BackButton).clicked.disconnect()
+        self.button(QWizard.WizardButton.BackButton).clicked.connect(
+            self.on_back_clicked
+        )
 
         current_page = self.currentPage()
         if current_page is not None:
@@ -129,9 +136,16 @@ class SimulationWizard(QWizard):
                 current_page.get_steps_tree().expandAll()
 
     def on_back_clicked(self):
-        # The user went back, needs to be reset in the page's isComplete
-        QgsMessageLog.logMessage("self.backPressed = True")
-        self.backPressed = True
+        current_page = self.currentPage()
+        if current_page.validatePage():
+            # The user went back, needs to be reset in the page's isComplete
+            self.backPressed = True
+            self.back()
+        else:
+            msg = "The current page is not valid and cannot be saved. Would you like to leave the page (and discard the changes)?"
+            if self.communication.ask(self, "Current page not valid", msg):
+                self.backPressed = True
+                self.back()
 
     @staticmethod
     def set_items_bold_by_data(model, value):
