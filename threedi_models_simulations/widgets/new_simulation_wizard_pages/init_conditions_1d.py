@@ -211,8 +211,12 @@ class InitialConditions1DPage(WizardPage):
                 ["Node ID"] + substance_names
             )
             self.substance_table.setVisible(True)
+            self.add_substance_from_file_pb.setVisible(True)
+            self.add_substance_row_pb.setVisible(True)
         else:
             self.substance_table.setVisible(False)
+            self.add_substance_from_file_pb.setVisible(False)
+            self.add_substance_row_pb.setVisible(False)
 
     def menu_requested_level(self, pos):
         index = self.table.indexAt(pos)
@@ -340,7 +344,7 @@ class InitialConditions1DPage(WizardPage):
                             self.table.blockSignals(True)
                             self.table.item(row, 0).setText("")
                             self.table.blockSignals(False)
-                            return
+                            break
 
         self.completeChanged.emit()
 
@@ -535,13 +539,19 @@ class InitialConditions1DPage(WizardPage):
         return self.is_complete()
 
     def is_complete(self):
-        # validate constant level
+        # Validate constant level
         if self.constant_value_cb.isChecked():
             if not self.constant_value_le.text():
                 return False
 
-        # does node already exist, value ok (TODO)
+        # Does node already exist?
+        try:
+            node_ids, values = self._retrieve_current_nodes()
+            if len(set(node_ids)) != len(node_ids):
+                return False
+        except Exception as e:
+            return False
 
-        # validate concentration
+        # Validate concentration (TODO)
 
         return True

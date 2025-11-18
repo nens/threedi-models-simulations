@@ -3,7 +3,7 @@ import os
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFont, QPixmap, QStandardItem, QStandardItemModel
-from qgis.PyQt.QtWidgets import QWizard
+from qgis.PyQt.QtWidgets import QMessageBox, QWizard
 
 from threedi_models_simulations.constants import ICONS_DIR
 from threedi_models_simulations.widgets.new_simulation_wizard_pages.duration import (
@@ -146,6 +146,14 @@ class SimulationWizard(QWizard):
             if self.communication.ask(self, "Current page not valid", msg):
                 self.backPressed = True
                 self.back()
+
+    def closeEvent(self, event):
+        if self.communication.ask(
+            self, "Exit wizard", "Are you sure you want to exit?"
+        ):
+            event.accept()
+        else:
+            event.ignore()
 
     @staticmethod
     def set_items_bold_by_data(model, value):
