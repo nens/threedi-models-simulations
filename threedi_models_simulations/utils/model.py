@@ -116,11 +116,10 @@ class NewSimulation:
     boundary_conditions_data: list = None
 
     # Initial conditions
-    # TODO: do we need these constant attributes?
-    initial_1d_water_level_constant: float = None  # was global_value_1d
-    initial_1d_water_level_predefined: bool = None  # was from_geopackage_1d
-    initial_1d_water_level: dict = None  # was initial_waterlevels_1d
+    initial_1d_water_level: dict = None  # global value
     initial_1d_water_level_file: InitialWaterlevel = None
+    initial_1d_water_level_data: list = None  # for intermediate data used for upload
+
     # substances
     initial_1d_substance_concentrations: list[OneDSubstanceConcentration] = None
 
@@ -246,11 +245,15 @@ def load_template_in_model(
 
         # TODO: derive the following value
         # new_sim.initial_1d_water_level_constant # was global_value_1d
-        new_sim.initial_1d_water_level_predefined = (
-            events.initial_onedwaterlevelpredefined
-        )  # was from_geopackage_1d
-        new_sim.initial_1d_water_level = events.initial_onedwaterlevel
+        # new_sim.initial_1d_water_level_predefined = (
+        #     events.initial_onedwaterlevelpredefined
+        # )  # was from_geopackage_1d
+
+        new_sim.initial_1d_water_level = (
+            events.initial_onedwaterlevel
+        )  # const global value
         new_sim.initial_1d_water_level_file = events.initial_onedwaterlevelfile
+
         # substances
         new_sim.initial_1d_substance_concentrations = (
             events.initial_oned_substance_concentrations
