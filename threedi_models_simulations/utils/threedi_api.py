@@ -387,8 +387,61 @@ def fetch_model_initial_waterlevels(
     )
 
 
+def fetch_model_initial_waterlevel(
+    threedi_api, threedimodel_id: str, water_level_id: int
+) -> InitialWaterlevel:
+    return threedi_api.threedimodels_initial_waterlevels_read(
+        water_level_id, threedimodel_id
+    )
+
+
+def fetch_simulation_initial_1d_water_level_files(
+    threedi_api, simulation_pk: int
+) -> List[OneDWaterLevelFile]:
+    return paginated_fetch(
+        threedi_api.simulations_initial1d_water_level_file_list, simulation_pk
+    )
+
+
+def delete_simulation_initial_1d_water_level_file(
+    threedi_api, simulation_pk: int, water_level_1d_file_id: int
+) -> None:
+    threedi_api.simulations_initial1d_water_level_file_delete(simulation_pk)
+
+
+def create_simulation_initial_1d_water_level_file(
+    threedi_api, simulation_pk: int, **data
+) -> OneDWaterLevelFile:
+    return threedi_api.simulations_initial1d_water_level_file_create(
+        str(simulation_pk), data
+    )
+
+
+def create_initial_water_level(
+    threedi_api, threedimodel_id: str, **data
+) -> InitialWaterlevel:
+    return threedi_api.threedimodels_initial_waterlevels_create(threedimodel_id, data)
+
+
+def upload_initial_water_level(
+    threedi_api, threedimodel_id: str, water_level_id: int, **data
+) -> Upload:
+    """Upload initial water level for the given 3Di model."""
+    return threedi_api.threedimodels_initial_waterlevels_upload(
+        water_level_id, threedimodel_id, data
+    )
+
+
 def fetch_model_initial_waterlevels_download(threedi_api, id, threedimodel_id: str):
     return threedi_api.threedimodels_initial_waterlevels_download(id, threedimodel_id)
+
+
+def create_simulation_initial_1d_water_level_constant(
+    threedi_api, simulation_pk: int, **data
+) -> OneDWaterLevel:
+    return threedi_api.simulations_initial1d_water_level_constant_create(
+        str(simulation_pk), data
+    )
 
 
 def fetch_3di_model_initial_concentrations(

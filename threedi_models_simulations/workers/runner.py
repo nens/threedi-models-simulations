@@ -18,16 +18,23 @@ from threedi_models_simulations.utils.threedi_api import (
     ThreediFileState,
     ThreediModelTaskStatus,
     WindEventTypes,
+    create_initial_water_level,
     create_simulation,
     create_simulation_action,
+    create_simulation_initial_1d_water_level_constant,
+    create_simulation_initial_1d_water_level_file,
     create_simulation_settings_aggregation,
     create_simulation_settings_numerical,
     create_simulation_settings_physical,
     create_simulation_settings_time_step,
     create_simulation_settings_water_quality,
     create_template_from_simulation,
+    delete_simulation_initial_1d_water_level_file,
     extract_error_message,
+    fetch_model_initial_waterlevel,
+    fetch_simulation_initial_1d_water_level_files,
     fetch_simulation_status,
+    upload_initial_water_level,
 )
 
 TEMPLATE_PATH = os.path.join(CACHE_PATH, "templates.json")
@@ -305,39 +312,53 @@ class SimulationRunner(QRunnable):
 
     def include_initial_conditions(self):
         """Add initial conditions to the new simulation."""
-        sim_id = self.current_simulation.simulation.id
-        sim_name = self.current_simulation.name
-        threedimodel_id = self.current_simulation.threedimodel_id
-        initial_conditions = self.current_simulation.initial_conditions
+        sim_id = self.new_sim.simulation.id
+        sim_name = self.new_sim.simulation.name
+        threedimodel_id = self.new_sim.simulation.threedimodel_id
+        QgsMessageLog.logMessage(str(self.new_sim), level=Qgis.Critical)
         # 1D
-        if initial_conditions.global_value_1d is not None:
-            self.tc.create_simulation_initial_1d_water_level_constant(
-                sim_id, value=initial_conditions.global_value_1d
+        QgsMessageLog.logMessage("CONST")
+        if self.new_sim.initial_1d_water_level is not None:
+            create_simulation_initial_1d_water_level_constant(
+                self.threedi_api,
+                sim_id,
+                value=self.new_sim.initial_1d_water_level.value,
             )
-        if initial_conditions.from_geopackage_1d:
-            self.tc.create_simulation_initial_1d_water_level_predefined(sim_id)
-        if initial_conditions.initial_waterlevels_1d is not None:
-            write_json_data(
-                initial_conditions.initial_waterlevels_1d, INITIAL_WATERLEVELS_TEMPLATE
-            )
-            filename = f"{sim_name}_1d_initial_waterlevels.json"
+
+        # if initial_conditions.from_geopackage_1d:
+        #     self.tc.create_simulation_initial_1d_water_level_predefined(sim_id)
+
+        if self.new_sim.initial_1d_water_level_data:
+            QgsMessageLog.logMessage("Writing new json for 1D water level")
+            nodes_ids = []
+            values = []
+            for node_id, value in self.new_sim.initial_1d_water_level_data.items():
+                nodes_ids.append(node_id)
+                values.append(value)
+
+            upload_data = {"node_ids": nodes_ids, "value": values}
+
+            write_json_data(upload_data, INITIAL_WATERLEVELS_TEMPLATE)
+
             # Steps to upload initial 1D water levels file
             # Step 1: Create a new initial water level instance for this model
-            initial_waterlevel_instance = self.tc.create_initial_water_level(
-                threedimodel_id, dimension="one_d"
+            initial_waterlevel_instance = create_initial_water_level(
+                self.threedi_api, threedimodel_id, dimension="one_d"
             )
             initial_waterlevel_id = initial_waterlevel_instance.id
             # Step 2: Create an upload instance for the initial waterl level
-            initial_waterlevel_upload = self.tc.upload_initial_water_level(
-                threedimodel_id, initial_waterlevel_id, filename=filename
+            filename = f"{initial_waterlevel_id}_{sim_name}_1d_initial_waterlevels.json"
+            initial_waterlevel_upload = upload_initial_water_level(
+                self.threedi_api,
+                threedimodel_id,
+                initial_waterlevel_id,
+                filename=filename,
             )
             upload_local_file(initial_waterlevel_upload, INITIAL_WATERLEVELS_TEMPLATE)
             # Step 3: Wait for the data to be processed (initial_waterlevel.state == "valid")
             for ti in range(int(self.upload_timeout // 2)):
-                uploaded_initial_waterlevel = (
-                    self.tc.fetch_3di_model_initial_waterlevel(
-                        threedimodel_id, initial_waterlevel_id
-                    )
+                uploaded_initial_waterlevel = fetch_model_initial_waterlevel(
+                    self.threedi_api, threedimodel_id, initial_waterlevel_id
                 )
                 if uploaded_initial_waterlevel.state == ThreediFileState.VALID.value:
                     break
@@ -361,367 +382,369 @@ class SimulationRunner(QRunnable):
                 err_msg = f"Failed to upload Initial Waterlevel file due to the following reasons: {state_detail}"
                 raise SimulationRunnerError(err_msg)
 
-        # These options should be mutually exclusive
-        assert not (
-            initial_conditions.initial_waterlevels_1d is not None
-            and initial_conditions.online_waterlevels_1d is not None
+        # Step 4: Find & delete existing 1D water levels file of the simulation
+        water_level_1d_files = fetch_simulation_initial_1d_water_level_files(
+            self.threedi_api, sim_id
         )
 
+        for water_level_1d_file in water_level_1d_files:
+            delete_simulation_initial_1d_water_level_file(
+                self.threedi_api, sim_id, water_level_1d_file.id
+            )
+
+        QgsMessageLog.logMessage("FILE")
+
+        # Step 5: Create a new 1D initial water level file for the simulation
         if (
-            initial_conditions.initial_waterlevels_1d is not None
-            or initial_conditions.online_waterlevels_1d is not None
+            self.new_sim.initial_1d_water_level_file is not None
+            and self.new_sim.initial_1d_water_level_data is not None
         ):
-            # Step 4: Find & delete existing 1D water levels file of the simulation
-            water_level_1d_files = (
-                self.tc.fetch_simulation_initial_1d_water_level_files(sim_id)
+            QgsMessageLog.logMessage(f"Adding waterlevel {initial_waterlevel_id}")
+            create_simulation_initial_1d_water_level_file(
+                self.threedi_api, sim_id, initial_waterlevel=initial_waterlevel_id
             )
-            for water_level_1d_file in water_level_1d_files:
-                self.tc.delete_simulation_initial_1d_water_level_file(
-                    sim_id, water_level_1d_file.id
-                )
-
-            # Step 5: Create a new 1D initial water level file for the simulation
-            if initial_conditions.initial_waterlevels_1d is not None:
-                self.tc.create_simulation_initial_1d_water_level_file(
-                    sim_id, initial_waterlevel=initial_waterlevel_id
-                )
-            elif initial_conditions.online_waterlevels_1d is not None:
-                self.tc.create_simulation_initial_1d_water_level_file(
-                    sim_id,
-                    initial_waterlevel=initial_conditions.online_waterlevels_1d.id,
-                )
-
-        # 2D
-        if initial_conditions.global_value_2d is not None:
-            self.tc.create_simulation_initial_2d_water_level_constant(
-                sim_id, value=initial_conditions.global_value_2d
+        elif self.new_sim.initial_1d_water_level_file is not None:
+            # Reuse existing water_level
+            QgsMessageLog.logMessage(
+                f"Reusing waterlevel {self.new_sim.initial_1d_water_level_file.id}"
             )
-        if (
-            initial_conditions.online_raster_2d is None
-            and initial_conditions.local_raster_2d is not None
-        ):
-            local_raster_2d_name = os.path.basename(initial_conditions.local_raster_2d)
-            initial_water_level_raster_2d = self.tc.create_3di_model_raster(
-                threedimodel_id,
-                name=local_raster_2d_name,
-                type="initial_waterlevel_file",
-            )
-            initial_wl_raster_2d_id = initial_water_level_raster_2d.id
-            init_water_level_upload_2d = self.tc.upload_3di_model_raster(
-                threedimodel_id,
-                initial_wl_raster_2d_id,
-                filename=local_raster_2d_name,
-            )
-            upload_local_file(
-                init_water_level_upload_2d, initial_conditions.local_raster_2d
-            )
-            raster_task_2d = None
-            for ti in range(int(self.upload_timeout // 2)):
-                if raster_task_2d is None:
-                    model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
-                    for task in model_tasks:
-                        try:
-                            if (
-                                initial_wl_raster_2d_id
-                                in task.params["only_raster_ids"]
-                            ):
-                                raster_task_2d = task
-                                break
-                        except KeyError:
-                            continue
-                else:
-                    raster_task_2d = self.tc.fetch_3di_model_task(
-                        threedimodel_id, raster_task_2d.id
-                    )
-                if (
-                    raster_task_2d
-                    and raster_task_2d.status == ThreediModelTaskStatus.SUCCESS.value
-                ):
-                    break
-                elif (
-                    raster_task_2d
-                    and raster_task_2d.status == ThreediModelTaskStatus.FAILURE.value
-                ):
-                    raise SimulationRunnerError(
-                        f"Failed to process 2D raster: {local_raster_2d_name}"
-                    )
-                else:
-                    time.sleep(2)
-            initial_waterlevels = self.tc.fetch_3di_model_initial_waterlevels(
-                threedimodel_id
-            )
-            for iw in initial_waterlevels:
-                if iw.source_raster_id == initial_wl_raster_2d_id:
-                    initial_conditions.online_raster_2d = iw
-                    break
-        if initial_conditions.online_raster_2d is not None:
-            try:
-                self.tc.create_simulation_initial_2d_water_level_raster(
-                    sim_id,
-                    aggregation_method=initial_conditions.aggregation_method_2d,
-                    initial_waterlevel=initial_conditions.online_raster_2d.url,
-                )
-            except AttributeError:
-                error_msg = (
-                    "Error: selected 2D raster for initial water level is not valid."
-                )
-                raise SimulationRunnerError(error_msg)
-        # Groundwater
-        if initial_conditions.global_value_groundwater is not None:
-            self.tc.create_simulation_initial_groundwater_level_constant(
-                sim_id, value=initial_conditions.global_value_groundwater
-            )
-        if (
-            initial_conditions.online_raster_groundwater is None
-            and initial_conditions.local_raster_groundwater is not None
-        ):
-            local_raster_gw_name = os.path.basename(
-                initial_conditions.local_raster_groundwater
-            )
-            initial_water_level_raster_gw = self.tc.create_3di_model_raster(
-                threedimodel_id,
-                name=local_raster_gw_name,
-                type="initial_groundwater_level_file",
-            )
-            initial_wl_raster_gw_id = initial_water_level_raster_gw.id
-            init_water_level_upload_gw = self.tc.upload_3di_model_raster(
-                threedimodel_id,
-                initial_wl_raster_gw_id,
-                filename=local_raster_gw_name,
-            )
-            upload_local_file(
-                init_water_level_upload_gw, initial_conditions.local_raster_groundwater
-            )
-            raster_task_gw = None
-            for ti in range(int(self.upload_timeout // 2)):
-                if raster_task_gw is None:
-                    model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
-                    for task in model_tasks:
-                        try:
-                            if (
-                                initial_wl_raster_gw_id
-                                in task.params["only_raster_ids"]
-                            ):
-                                raster_task_gw = task
-                                break
-                        except KeyError:
-                            continue
-                else:
-                    raster_task_gw = self.tc.fetch_3di_model_task(
-                        threedimodel_id, raster_task_gw.id
-                    )
-                if (
-                    raster_task_gw
-                    and raster_task_gw.status == ThreediModelTaskStatus.SUCCESS.value
-                ):
-                    break
-                elif (
-                    raster_task_gw
-                    and raster_task_gw.status == ThreediModelTaskStatus.FAILURE.value
-                ):
-                    raise SimulationRunnerError(
-                        f"Failed to process Groundwater raster: {local_raster_gw_name}"
-                    )
-                else:
-                    time.sleep(2)
-            initial_waterlevels = self.tc.fetch_3di_model_initial_waterlevels(
-                threedimodel_id
-            )
-            for iw in initial_waterlevels:
-                if iw.source_raster_id == initial_wl_raster_gw_id:
-                    initial_conditions.online_raster_groundwater = iw
-                    break
-        if initial_conditions.online_raster_groundwater is not None:
-            try:
-                self.tc.create_simulation_initial_groundwater_level_raster(
-                    sim_id,
-                    aggregation_method=initial_conditions.aggregation_method_groundwater,
-                    initial_waterlevel=initial_conditions.online_raster_groundwater.url,
-                )
-            except AttributeError:
-                error_msg = "Error: selected groundwater raster is not valid."
-                raise SimulationRunnerError(error_msg)
-        # Saved state
-        if initial_conditions.saved_state:
-            saved_state_id = initial_conditions.saved_state.url.strip("/").split("/")[
-                -1
-            ]
-            self.tc.create_simulation_initial_saved_state(
-                sim_id, saved_state=saved_state_id
+            create_simulation_initial_1d_water_level_file(
+                self.threedi_api,
+                sim_id,
+                initial_waterlevel=self.new_sim.initial_1d_water_level_file.initial_waterlevel_id,
             )
 
-        # Initial concentrations 1D for substances
-        if initial_conditions.initial_concentrations_1d:
-            for (
-                substance,
-                params,
-            ) in initial_conditions.initial_concentrations_1d.items():
-                substance_id = self.substances[substance]
-                local_data = params.get("local_data")
-                online_file = params.get("online_file")
-                if online_file is not None:
-                    # find the initial concentration refering to this file.
-                    results = self.tc.fetch_3di_model_initial_concentrations(
-                        threedimodel_id
-                    )
-                    one_d_ids = [
-                        x
-                        for x in results
-                        if x.dimension == "one_d" and x.file == online_file
-                    ]
-                    if len(one_d_ids) > 0:
-                        initial_concentration_1d = one_d_ids[0]
-                else:
-                    assert local_data is not None
+        # # 2D
+        # if initial_conditions.global_value_2d is not None:
+        #     self.tc.create_simulation_initial_2d_water_level_constant(
+        #         sim_id, value=initial_conditions.global_value_2d
+        #     )
+        # if (
+        #     initial_conditions.online_raster_2d is None
+        #     and initial_conditions.local_raster_2d is not None
+        # ):
+        #     local_raster_2d_name = os.path.basename(initial_conditions.local_raster_2d)
+        #     initial_water_level_raster_2d = self.tc.create_3di_model_raster(
+        #         threedimodel_id,
+        #         name=local_raster_2d_name,
+        #         type="initial_waterlevel_file",
+        #     )
+        #     initial_wl_raster_2d_id = initial_water_level_raster_2d.id
+        #     init_water_level_upload_2d = self.tc.upload_3di_model_raster(
+        #         threedimodel_id,
+        #         initial_wl_raster_2d_id,
+        #         filename=local_raster_2d_name,
+        #     )
+        #     upload_local_file(
+        #         init_water_level_upload_2d, initial_conditions.local_raster_2d
+        #     )
+        #     raster_task_2d = None
+        #     for ti in range(int(self.upload_timeout // 2)):
+        #         if raster_task_2d is None:
+        #             model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
+        #             for task in model_tasks:
+        #                 try:
+        #                     if (
+        #                         initial_wl_raster_2d_id
+        #                         in task.params["only_raster_ids"]
+        #                     ):
+        #                         raster_task_2d = task
+        #                         break
+        #                 except KeyError:
+        #                     continue
+        #         else:
+        #             raster_task_2d = self.tc.fetch_3di_model_task(
+        #                 threedimodel_id, raster_task_2d.id
+        #             )
+        #         if (
+        #             raster_task_2d
+        #             and raster_task_2d.status == ThreediModelTaskStatus.SUCCESS.value
+        #         ):
+        #             break
+        #         elif (
+        #             raster_task_2d
+        #             and raster_task_2d.status == ThreediModelTaskStatus.FAILURE.value
+        #         ):
+        #             raise SimulationRunnerError(
+        #                 f"Failed to process 2D raster: {local_raster_2d_name}"
+        #             )
+        #         else:
+        #             time.sleep(2)
+        #     initial_waterlevels = self.tc.fetch_3di_model_initial_waterlevels(
+        #         threedimodel_id
+        #     )
+        #     for iw in initial_waterlevels:
+        #         if iw.source_raster_id == initial_wl_raster_2d_id:
+        #             initial_conditions.online_raster_2d = iw
+        #             break
+        # if initial_conditions.online_raster_2d is not None:
+        #     try:
+        #         self.tc.create_simulation_initial_2d_water_level_raster(
+        #             sim_id,
+        #             aggregation_method=initial_conditions.aggregation_method_2d,
+        #             initial_waterlevel=initial_conditions.online_raster_2d.url,
+        #         )
+        #     except AttributeError:
+        #         error_msg = (
+        #             "Error: selected 2D raster for initial water level is not valid."
+        #         )
+        #         raise SimulationRunnerError(error_msg)
+        # # Groundwater
+        # if initial_conditions.global_value_groundwater is not None:
+        #     self.tc.create_simulation_initial_groundwater_level_constant(
+        #         sim_id, value=initial_conditions.global_value_groundwater
+        #     )
+        # if (
+        #     initial_conditions.online_raster_groundwater is None
+        #     and initial_conditions.local_raster_groundwater is not None
+        # ):
+        #     local_raster_gw_name = os.path.basename(
+        #         initial_conditions.local_raster_groundwater
+        #     )
+        #     initial_water_level_raster_gw = self.tc.create_3di_model_raster(
+        #         threedimodel_id,
+        #         name=local_raster_gw_name,
+        #         type="initial_groundwater_level_file",
+        #     )
+        #     initial_wl_raster_gw_id = initial_water_level_raster_gw.id
+        #     init_water_level_upload_gw = self.tc.upload_3di_model_raster(
+        #         threedimodel_id,
+        #         initial_wl_raster_gw_id,
+        #         filename=local_raster_gw_name,
+        #     )
+        #     upload_local_file(
+        #         init_water_level_upload_gw, initial_conditions.local_raster_groundwater
+        #     )
+        #     raster_task_gw = None
+        #     for ti in range(int(self.upload_timeout // 2)):
+        #         if raster_task_gw is None:
+        #             model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
+        #             for task in model_tasks:
+        #                 try:
+        #                     if (
+        #                         initial_wl_raster_gw_id
+        #                         in task.params["only_raster_ids"]
+        #                     ):
+        #                         raster_task_gw = task
+        #                         break
+        #                 except KeyError:
+        #                     continue
+        #         else:
+        #             raster_task_gw = self.tc.fetch_3di_model_task(
+        #                 threedimodel_id, raster_task_gw.id
+        #             )
+        #         if (
+        #             raster_task_gw
+        #             and raster_task_gw.status == ThreediModelTaskStatus.SUCCESS.value
+        #         ):
+        #             break
+        #         elif (
+        #             raster_task_gw
+        #             and raster_task_gw.status == ThreediModelTaskStatus.FAILURE.value
+        #         ):
+        #             raise SimulationRunnerError(
+        #                 f"Failed to process Groundwater raster: {local_raster_gw_name}"
+        #             )
+        #         else:
+        #             time.sleep(2)
+        #     initial_waterlevels = self.tc.fetch_3di_model_initial_waterlevels(
+        #         threedimodel_id
+        #     )
+        #     for iw in initial_waterlevels:
+        #         if iw.source_raster_id == initial_wl_raster_gw_id:
+        #             initial_conditions.online_raster_groundwater = iw
+        #             break
+        # if initial_conditions.online_raster_groundwater is not None:
+        #     try:
+        #         self.tc.create_simulation_initial_groundwater_level_raster(
+        #             sim_id,
+        #             aggregation_method=initial_conditions.aggregation_method_groundwater,
+        #             initial_waterlevel=initial_conditions.online_raster_groundwater.url,
+        #         )
+        #     except AttributeError:
+        #         error_msg = "Error: selected groundwater raster is not valid."
+        #         raise SimulationRunnerError(error_msg)
+        # # Saved state
+        # if initial_conditions.saved_state:
+        #     saved_state_id = initial_conditions.saved_state.url.strip("/").split("/")[
+        #         -1
+        #     ]
+        #     self.tc.create_simulation_initial_saved_state(
+        #         sim_id, saved_state=saved_state_id
+        #     )
 
-                    # create a new initial concentration
-                    initial_concentration_1d = (
-                        self.tc.create_3di_model_initial_concentration(
-                            threedimodel_id=threedimodel_id, dimension="one_d"
-                        )
-                    )
+        # # Initial concentrations 1D for substances
+        # if initial_conditions.initial_concentrations_1d:
+        #     for (
+        #         substance,
+        #         params,
+        #     ) in initial_conditions.initial_concentrations_1d.items():
+        #         substance_id = self.substances[substance]
+        #         local_data = params.get("local_data")
+        #         online_file = params.get("online_file")
+        #         if online_file is not None:
+        #             # find the initial concentration refering to this file.
+        #             results = self.tc.fetch_3di_model_initial_concentrations(
+        #                 threedimodel_id
+        #             )
+        #             one_d_ids = [
+        #                 x
+        #                 for x in results
+        #                 if x.dimension == "one_d" and x.file == online_file
+        #             ]
+        #             if len(one_d_ids) > 0:
+        #                 initial_concentration_1d = one_d_ids[0]
+        #         else:
+        #             assert local_data is not None
 
-                    # create an upload url
-                    initial_concentration_upload = (
-                        self.tc.upload_3di_model_initial_concentration(
-                            threedimodel_id=threedimodel_id,
-                            initial_concentration_id=initial_concentration_1d.id,
-                            filename=f"{sim_name}_initial_concent_1d.json",
-                        )
-                    )
+        #             # create a new initial concentration
+        #             initial_concentration_1d = (
+        #                 self.tc.create_3di_model_initial_concentration(
+        #                     threedimodel_id=threedimodel_id, dimension="one_d"
+        #                 )
+        #             )
 
-                    # now write and upload the data (in json format)
-                    write_json_data(local_data, INITIAL_CONCENTRATIONS_TEMPLATE)
-                    upload_local_file(
-                        initial_concentration_upload, INITIAL_CONCENTRATIONS_TEMPLATE
-                    )
+        #             # create an upload url
+        #             initial_concentration_upload = (
+        #                 self.tc.upload_3di_model_initial_concentration(
+        #                     threedimodel_id=threedimodel_id,
+        #                     initial_concentration_id=initial_concentration_1d.id,
+        #                     filename=f"{sim_name}_initial_concent_1d.json",
+        #                 )
+        #             )
 
-                    # wait until the data is processed
-                    retries = 0
-                    newly_generated_id = initial_concentration_1d.id
-                    initial_concentration_1d = None
-                    while not initial_concentration_1d and retries < 12:
-                        results = self.tc.fetch_3di_model_initial_concentrations(
-                            threedimodel_id
-                        )
-                        one_d_ids = [
-                            x
-                            for x in results
-                            if x.dimension == "one_d"
-                            and x.state == "valid"
-                            and x.id == newly_generated_id
-                        ]
-                        if len(one_d_ids) > 0:
-                            initial_concentration_1d = one_d_ids[0]
-                            break
-                        retries += 1
-                        time.sleep(5)
+        #             # now write and upload the data (in json format)
+        #             write_json_data(local_data, INITIAL_CONCENTRATIONS_TEMPLATE)
+        #             upload_local_file(
+        #                 initial_concentration_upload, INITIAL_CONCENTRATIONS_TEMPLATE
+        #             )
 
-                assert initial_concentration_1d is not None
-                self.tc.create_simulation_initial_1d_substance_concentrations(
-                    sim_id,
-                    substance=substance_id,
-                    initial_concentration=initial_concentration_1d.id,
-                )
+        #             # wait until the data is processed
+        #             retries = 0
+        #             newly_generated_id = initial_concentration_1d.id
+        #             initial_concentration_1d = None
+        #             while not initial_concentration_1d and retries < 12:
+        #                 results = self.tc.fetch_3di_model_initial_concentrations(
+        #                     threedimodel_id
+        #                 )
+        #                 one_d_ids = [
+        #                     x
+        #                     for x in results
+        #                     if x.dimension == "one_d"
+        #                     and x.state == "valid"
+        #                     and x.id == newly_generated_id
+        #                 ]
+        #                 if len(one_d_ids) > 0:
+        #                     initial_concentration_1d = one_d_ids[0]
+        #                     break
+        #                 retries += 1
+        #                 time.sleep(5)
 
-        # Initial concentrations 2D for substances
-        if initial_conditions.initial_concentrations_2d:
-            for (
-                substance,
-                params,
-            ) in initial_conditions.initial_concentrations_2d.items():
-                substance_id = self.substances[substance]
-                aggregation_method = params.get("aggregation_method")
-                local_raster_path = params.get("local_raster_path")
-                online_raster = params.get("online_raster")
-                raster_id = None
-                if online_raster:
-                    raster_id = online_raster
-                elif local_raster_path:
-                    # Create a 3Di model raster
-                    local_raster_ic_name = os.path.basename(local_raster_path)
-                    raster = self.tc.create_3di_model_raster(
-                        threedimodel_id,
-                        name=local_raster_ic_name,
-                        type="initial_concentration_file",
-                    )
-                    raster_id = raster.id
-                    # Upload the raster
-                    initial_concentration_raster_upload = (
-                        self.tc.upload_3di_model_raster(
-                            threedimodel_id, raster_id, filename=local_raster_ic_name
-                        )
-                    )
-                    upload_local_file(
-                        initial_concentration_raster_upload, local_raster_path
-                    )
-                    # Wait for the raster processing
-                    raster_task_ic = None
-                    for ti in range(int(self.upload_timeout // 2)):
-                        if raster_task_ic is None:
-                            model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
-                            for task in model_tasks:
-                                try:
-                                    if task.params and raster_id in task.params.get(
-                                        "only_raster_ids", []
-                                    ):
-                                        raster_task_ic = task
-                                        break
-                                except KeyError:
-                                    continue
-                        else:
-                            raster_task_ic = self.tc.fetch_3di_model_task(
-                                threedimodel_id, raster_task_ic.id
-                            )
-                        if (
-                            raster_task_ic
-                            and raster_task_ic.status
-                            == ThreediModelTaskStatus.SUCCESS.value
-                        ):
-                            break
-                        elif (
-                            raster_task_ic
-                            and raster_task_ic.status
-                            == ThreediModelTaskStatus.FAILURE.value
-                        ):
-                            error_msg = f"Failed to process Initial Concentration raster: {local_raster_ic_name}"
-                            raise SimulationRunnerError(error_msg)
-                        else:
-                            time.sleep(2)
-                if raster_id:
-                    # Wait for the processing of initial concentration file to finish
-                    retries = 0
-                    initial_concentration_2d = None
-                    while not initial_concentration_2d and retries < 12:
-                        results = self.tc.fetch_3di_model_initial_concentrations(
-                            threedimodel_id
-                        )
-                        two_d_ids = [
-                            x
-                            for x in results
-                            if x.dimension == "two_d"
-                            and x.source_raster_id == raster_id
-                        ]
-                        if len(two_d_ids) > 0:
-                            initial_concentration_2d = two_d_ids[0]
-                            break
-                        retries += 1
-                        time.sleep(5)
-                    if initial_concentration_2d:
-                        # Link substance to initial concentration
-                        try:
-                            self.tc.create_simulation_initial_2d_substance_concentrations(
-                                sim_id,
-                                substance=substance_id,
-                                aggregation_method=aggregation_method,
-                                initial_concentration=initial_concentration_2d.id,
-                            )
-                        except:
-                            error_msg = f"Failed to create initial concentration for substance: {substance}"
-                            raise SimulationRunnerError(error_msg)
-                    else:
-                        error_msg = f"Could not find 2D initial concentration for raster ID: {raster_id}"
-                        raise SimulationRunnerError(error_msg)
+        #         assert initial_concentration_1d is not None
+        #         self.tc.create_simulation_initial_1d_substance_concentrations(
+        #             sim_id,
+        #             substance=substance_id,
+        #             initial_concentration=initial_concentration_1d.id,
+        #         )
+
+        # # Initial concentrations 2D for substances
+        # if initial_conditions.initial_concentrations_2d:
+        #     for (
+        #         substance,
+        #         params,
+        #     ) in initial_conditions.initial_concentrations_2d.items():
+        #         substance_id = self.substances[substance]
+        #         aggregation_method = params.get("aggregation_method")
+        #         local_raster_path = params.get("local_raster_path")
+        #         online_raster = params.get("online_raster")
+        #         raster_id = None
+        #         if online_raster:
+        #             raster_id = online_raster
+        #         elif local_raster_path:
+        #             # Create a 3Di model raster
+        #             local_raster_ic_name = os.path.basename(local_raster_path)
+        #             raster = self.tc.create_3di_model_raster(
+        #                 threedimodel_id,
+        #                 name=local_raster_ic_name,
+        #                 type="initial_concentration_file",
+        #             )
+        #             raster_id = raster.id
+        #             # Upload the raster
+        #             initial_concentration_raster_upload = (
+        #                 self.tc.upload_3di_model_raster(
+        #                     threedimodel_id, raster_id, filename=local_raster_ic_name
+        #                 )
+        #             )
+        #             upload_local_file(
+        #                 initial_concentration_raster_upload, local_raster_path
+        #             )
+        #             # Wait for the raster processing
+        #             raster_task_ic = None
+        #             for ti in range(int(self.upload_timeout // 2)):
+        #                 if raster_task_ic is None:
+        #                     model_tasks = self.tc.fetch_3di_model_tasks(threedimodel_id)
+        #                     for task in model_tasks:
+        #                         try:
+        #                             if task.params and raster_id in task.params.get(
+        #                                 "only_raster_ids", []
+        #                             ):
+        #                                 raster_task_ic = task
+        #                                 break
+        #                         except KeyError:
+        #                             continue
+        #                 else:
+        #                     raster_task_ic = self.tc.fetch_3di_model_task(
+        #                         threedimodel_id, raster_task_ic.id
+        #                     )
+        #                 if (
+        #                     raster_task_ic
+        #                     and raster_task_ic.status
+        #                     == ThreediModelTaskStatus.SUCCESS.value
+        #                 ):
+        #                     break
+        #                 elif (
+        #                     raster_task_ic
+        #                     and raster_task_ic.status
+        #                     == ThreediModelTaskStatus.FAILURE.value
+        #                 ):
+        #                     error_msg = f"Failed to process Initial Concentration raster: {local_raster_ic_name}"
+        #                     raise SimulationRunnerError(error_msg)
+        #                 else:
+        #                     time.sleep(2)
+        #         if raster_id:
+        #             # Wait for the processing of initial concentration file to finish
+        #             retries = 0
+        #             initial_concentration_2d = None
+        #             while not initial_concentration_2d and retries < 12:
+        #                 results = self.tc.fetch_3di_model_initial_concentrations(
+        #                     threedimodel_id
+        #                 )
+        #                 two_d_ids = [
+        #                     x
+        #                     for x in results
+        #                     if x.dimension == "two_d"
+        #                     and x.source_raster_id == raster_id
+        #                 ]
+        #                 if len(two_d_ids) > 0:
+        #                     initial_concentration_2d = two_d_ids[0]
+        #                     break
+        #                 retries += 1
+        #                 time.sleep(5)
+        #             if initial_concentration_2d:
+        #                 # Link substance to initial concentration
+        #                 try:
+        #                     self.tc.create_simulation_initial_2d_substance_concentrations(
+        #                         sim_id,
+        #                         substance=substance_id,
+        #                         aggregation_method=aggregation_method,
+        #                         initial_concentration=initial_concentration_2d.id,
+        #                     )
+        #                 except:
+        #                     error_msg = f"Failed to create initial concentration for substance: {substance}"
+        #                     raise SimulationRunnerError(error_msg)
+        #             else:
+        #                 error_msg = f"Could not find 2D initial concentration for raster ID: {raster_id}"
+        #                 raise SimulationRunnerError(error_msg)
 
     def include_laterals(self):
         """Add initial laterals to the new simulation."""
@@ -1092,8 +1115,8 @@ class SimulationRunner(QRunnable):
             # self.report_progress()
             # self.include_structure_controls()
             # self.report_progress()
-            # self.include_initial_conditions()
-            # self.report_progress()
+            self.include_initial_conditions()
+            self.report_progress()
             # self.include_laterals()
             # self.report_progress()
             # self.include_dwf()
