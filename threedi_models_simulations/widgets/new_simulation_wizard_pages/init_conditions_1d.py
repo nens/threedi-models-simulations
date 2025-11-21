@@ -64,29 +64,28 @@ class InitialConditions1DPage(WizardPage):
         layout = QGridLayout()
         main_widget.setLayout(layout)
 
+        self.no_value_rb = QRadioButton("No initial 1D water level", main_widget)
+        layout.addWidget(self.no_value_rb, 0, 0)
+
         self.constant_value_rb = QRadioButton("Global value", main_widget)
         self.constant_value_rb.toggled.connect(self.constant_checked)
         self.constant_value_le = QLineEdit(main_widget)
+        self.constant_value_le.setEnabled(False)
         self.constant_value_le.textEdited.connect(self.completeChanged)
         double_validator = QDoubleValidator(0, 100000000, 3, main_widget)
         self.constant_value_le.setValidator(double_validator)
         constant_label_lb = QLabel("Label", main_widget)
         self.constant_label_le = QLineEdit(main_widget)
-        layout.addWidget(self.constant_value_rb, 0, 0)
-        layout.addWidget(self.constant_value_le, 0, 1)
-        layout.addWidget(constant_label_lb, 0, 2)
-        layout.addWidget(self.constant_label_le, 0, 3)
+        self.constant_label_le.setEnabled(False)
+        layout.addWidget(self.constant_value_rb, 1, 0)
+        layout.addWidget(self.constant_value_le, 1, 1)
+        layout.addWidget(constant_label_lb, 1, 2)
+        layout.addWidget(self.constant_label_le, 1, 3)
 
-        self.online_value_rb = QRadioButton("Select online file", main_widget)
-        self.online_value_rb.toggled.connect(self.online_checked)
-        self.online_value_cob = QComboBox(main_widget)
-        self.online_value_cob.activated.connect(self.online_file_changed)
+        self.table_value_rb = QRadioButton("Define 1D waterlevel in table", main_widget)
+        self.table_value_rb.toggled.connect(self.table_checked)
 
-        self.no_presets_rb = QRadioButton("No presets", main_widget)
-
-        layout.addWidget(self.online_value_rb, 1, 0)
-        layout.addWidget(self.online_value_cob, 1, 1, 1, 3)
-        layout.addWidget(self.no_presets_rb, 2, 0)
+        layout.addWidget(self.table_value_rb, 2, 0)
 
         self.table = QTableWidget(main_widget)
         self.table.setColumnCount(3)
@@ -101,15 +100,25 @@ class InitialConditions1DPage(WizardPage):
         int_delegate = IntDelegate(self.table, bottom=0)
         self.table.setItemDelegateForColumn(1, float_delegate)
         self.table.setItemDelegateForColumn(0, int_delegate)
-        self.table.setEnabled(True)
+        self.table.setEnabled(False)
         layout.addWidget(self.table, 3, 0, 4, 4)
 
         self.add_node_row_pb = QPushButton("+ Add node", main_widget)
         self.add_node_from_file_pb = QPushButton("+ Add from local file", main_widget)
+        self.add_node_from_online_file_pb = QPushButton(
+            "+ Add from online file", main_widget
+        )
         self.add_node_row_pb.clicked.connect(self.add_node)
         self.add_node_from_file_pb.clicked.connect(self.add_node_from_file)
-        layout.addWidget(self.add_node_row_pb, 7, 2)
-        layout.addWidget(self.add_node_from_file_pb, 7, 3)
+        self.add_node_from_online_file_pb.clicked.connect(
+            self.add_node_from_online_file
+        )
+        self.add_node_row_pb.setEnabled(False)
+        self.add_node_from_file_pb.setEnabled(False)
+        self.add_node_from_online_file_pb.setEnabled(False)
+        layout.addWidget(self.add_node_row_pb, 7, 1)
+        layout.addWidget(self.add_node_from_file_pb, 7, 2)
+        layout.addWidget(self.add_node_from_online_file_pb, 7, 3)
 
         self.substance_table = QTableWidget(main_widget)
         self.substance_table.setColumnCount(1)
@@ -154,40 +163,7 @@ class InitialConditions1DPage(WizardPage):
             self.constant_value_le.setText(
                 str(self.new_sim.initial_1d_water_level.value)
             )
-        else:
-            self.constant_value_rb.setChecked(False)
-            self.constant_value_le.clear()
-
-        # File checkbox plus combobox
-        self.online_value_rb.blockSignals(True)
-        self.online_value_cob.blockSignals(True)
-
-        self.online_value_rb.setChecked(False)
-        self.online_value_cob.clear()
-        for level in self.initial_waterlevels_1d:
-            self.online_value_cob.addItem(
-                str(level.id) + ":" + level.file.filename, level
-            )
-
-        if not self.initial_waterlevels_1d:
-            self.online_value_rb.setEnabled(False)
-
-        for level in self.initial_waterlevels_1d:
-            if (
-                self.new_sim.initial_1d_water_level_file
-                and level.id
-                == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
-            ):
-                self.online_value_rb.setChecked(True)
-                self.online_value_cob.setCurrentText(
-                    str(level.id) + ":" + level.file.filename
-                )
-                break
-        self.online_value_rb.blockSignals(False)
-        self.online_value_cob.blockSignals(False)
-
-        # Check whether we need to load custom values, or the values from the online file, or no data at all
-        if self.new_sim.initial_1d_water_level_data:
+        elif self.new_sim.initial_1d_water_level_data:
             self.table.setRowCount(0)
             for node, value in self.new_sim.initial_1d_water_level_data.items():
                 row_position = self.table.rowCount()
@@ -196,14 +172,21 @@ class InitialConditions1DPage(WizardPage):
                 self.table.setItem(row_position, 0, QTableWidgetItem(str(int(node))))
                 self.table.setItem(row_position, 1, QTableWidgetItem(str(value)))
                 self.table.blockSignals(False)
-        elif (
-            self.online_value_rb.isChecked() and self.online_value_cob.currentData()
-        ):  # Retrieve from online file
+            self.table_value_rb.setChecked(True)
+        elif self.new_sim.initial_1d_water_level_file:
             self.table.setRowCount(0)
-            current_level = self.online_value_cob.currentData()
-            self.load_online_waterlevel_in_table(current_level)
+            for level in self.initial_waterlevels_1d:
+                if (
+                    level.id
+                    == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
+                ):
+                    # Retrieve from online file
+                    self.load_online_waterlevel_in_table(level)
+                    self.table_value_rb.setChecked(True)
+                    break
         else:
-            pass
+            # Nothing
+            self.no_value_rb.setChecked(True)
 
         # Update substances table (TODO)
         substance_names = [substance.name for substance in self.new_sim.substances]
@@ -229,66 +212,30 @@ class InitialConditions1DPage(WizardPage):
         menu.addAction(action_stop)
         menu.popup(self.table.viewport().mapToGlobal(pos))
 
+    def table_checked(self, toggled):
+        if not toggled:
+            self.table.setEnabled(False)
+            self.add_node_row_pb.setEnabled(False)
+            self.add_node_from_file_pb.setEnabled(False)
+            self.add_node_from_online_file_pb.setEnabled(False)
+            self.table.setRowCount(0)
+        else:
+            self.table.setEnabled(True)
+            self.add_node_row_pb.setEnabled(True)
+            self.add_node_from_file_pb.setEnabled(True)
+            self.add_node_from_online_file_pb.setEnabled(True)
+
+        self.completeChanged.emit()
+
     def constant_checked(self, toggled):
         if not toggled:
             self.constant_value_le.clear()
             self.constant_label_le.clear()
             self.constant_value_le.setEnabled(False)
             self.constant_label_le.setEnabled(False)
-            self.table.setEnabled(True)
-            self.add_node_row_pb.setEnabled(True)
-            self.add_node_from_file_pb.setEnabled(True)
         else:
-            self.table.setEnabled(False)
-            self.add_node_row_pb.setEnabled(False)
-            self.add_node_from_file_pb.setEnabled(False)
-            self.table.setRowCount(0)
             self.constant_value_le.setEnabled(True)
             self.constant_label_le.setEnabled(True)
-
-        self.completeChanged.emit()
-
-    def online_checked(self, toggled):
-        if not toggled:
-            self.online_value_cob.clear()
-            self.online_value_cob.setEnabled(False)
-        else:
-            self.online_value_cob.setEnabled(True)
-            self.online_value_cob.clear()
-            for level in self.initial_waterlevels_1d:
-                self.online_value_cob.addItem(
-                    str(level.id) + ":" + level.file.filename, level
-                )
-
-            # Set it to the right initial values
-            if self.new_sim.initial_1d_water_level_file:
-                for level in self.initial_waterlevels_1d:
-                    if (
-                        self.new_sim.initial_1d_water_level_file
-                        and level.id
-                        == self.new_sim.initial_1d_water_level_file.initial_waterlevel_id
-                    ):
-                        current_level = level
-                        break
-            elif self.initial_waterlevels_1d:
-                current_level = self.initial_waterlevels_1d[0]
-
-            self.online_value_cob.setCurrentText(
-                str(current_level.id) + ":" + current_level.file.filename
-            )
-
-            if self.table.rowCount() != 0:
-                if UICommunication.ask(
-                    self,
-                    "Online file changed",
-                    "Selecting another online waterlevel instance will clear the table, continue?",
-                ):
-                    self.table.setRowCount(0)
-                    self.load_online_waterlevel_in_table(current_level)
-                else:
-                    self.online_value_rb.setChecked(False)
-            else:
-                self.load_online_waterlevel_in_table(current_level)
 
         self.completeChanged.emit()
 
@@ -323,19 +270,6 @@ class InitialConditions1DPage(WizardPage):
                 result = json.loads(data_str)
                 data = np.column_stack((result["node_ids"], result["values"]))
 
-    def online_file_changed(self, idx):
-        if self.table.rowCount() != 0:
-            if UICommunication.ask(
-                self,
-                "Online file changed",
-                "Selecting another online waterlevel instance will clear the table, continue?",
-            ):
-                self.table.setRowCount(0)
-                current_level = self.online_value_cob.currentData()
-                self.load_online_waterlevel_in_table(current_level)
-
-                self.completeChanged.emit()
-
     def cell_changed(self, row, column):
         # When entered, check for duplicates
         if column == 0:
@@ -366,6 +300,77 @@ class InitialConditions1DPage(WizardPage):
         self.table.scrollToItem(item, QTableWidget.PositionAtBottom)
         self.completeChanged.emit()
 
+    def add_node_from_online_file(self):
+        # Create dialog and download file
+        online_file_dialog = QDialog(self)
+
+        online_file_dialog.setWindowTitle("Select online file")
+        dialog_layout = QGridLayout(online_file_dialog)
+        online_file_dialog.setLayout(dialog_layout)
+
+        online_file_cb = QComboBox(online_file_dialog)
+        dialog_layout.addWidget(online_file_cb, 0, 0, 1, 3)
+
+        for level in self.initial_waterlevels_1d:
+            online_file_cb.addItem(str(level.id) + ":" + level.file.filename, level)
+        cancel_pb = QPushButton("Cancel", self)
+        ok_pb = QPushButton("Ok", self)
+        cancel_pb.clicked.connect(online_file_dialog.reject)
+        ok_pb.clicked.connect(online_file_dialog.accept)
+        dialog_layout.addWidget(cancel_pb, 1, 0)
+        dialog_layout.addWidget(ok_pb, 1, 2)
+
+        if online_file_dialog.exec() == QDialog.DialogCode.Accepted:
+            # Download data
+            data = self.fetch_level_data_from_api(online_file_cb.currentData())
+            new_node_ids = []
+            new_values = []
+            for pair in data:
+                new_node_ids.append(int(pair[0]))
+                new_values.append(float(pair[1]))
+
+            # Retrieve the current nodes
+            try:
+                current_node_ids, current_values = self._retrieve_current_nodes()
+            except Exception as e:
+                self.communication.show_warn(str(e), self, "Warning")
+                return
+
+            # Show duplicate node dialog with new data and currently loaded data
+            d_dialog = DuplicateNodeDialog(
+                current_node_ids, current_values, new_node_ids, new_values, self
+            )
+            if d_dialog.exec() == QDialog.DialogCode.Accepted:
+                last_added_item = None
+                self.table.blockSignals(True)
+                # Replace values that have to be overwritten
+                overwrite_data = d_dialog.get_overwrite_data()
+                for id, value in overwrite_data:
+                    for row in range(self.table.rowCount()):
+                        node_id = int(self.table.item(row, 0).text())
+                        if node_id == id:
+                            self.table.item(row, 1).setText(str(value))
+
+                # Append new values in UI,
+                new_data = d_dialog.get_new_data()
+
+                for pair in new_data:
+                    row_position = self.table.rowCount()
+                    self.table.insertRow(row_position)
+                    self.table.setItem(
+                        row_position, 0, QTableWidgetItem(str(int(pair[0])))
+                    )
+                    last_added_item = QTableWidgetItem(str(float(pair[1])))
+                    self.table.setItem(row_position, 1, last_added_item)
+                self.table.blockSignals(False)
+
+                if last_added_item:
+                    self.table.scrollToItem(
+                        last_added_item, QTableWidget.PositionAtBottom
+                    )
+
+                self.completeChanged.emit()
+
     def add_node_from_file(self):
         # First retrieve the current values from the table
         try:
@@ -380,6 +385,8 @@ class InitialConditions1DPage(WizardPage):
             "",
             "Comma-separated values (*.csv *.txt)",
         )
+        if not file_name:
+            return
 
         new_node_ids = []
         new_values = []
@@ -431,8 +438,9 @@ class InitialConditions1DPage(WizardPage):
         d_dialog = DuplicateNodeDialog(
             current_node_ids, current_values, new_node_ids, new_values, self
         )
-        last_added_item = None
+
         if d_dialog.exec() == QDialog.DialogCode.Accepted:
+            last_added_item = None
             self.table.blockSignals(True)
             # Replace values that have to be overwritten
             overwrite_data = d_dialog.get_overwrite_data()
@@ -489,44 +497,53 @@ class InitialConditions1DPage(WizardPage):
         if self.constant_value_rb.isChecked():
             value = float(self.constant_value_le.text())
             self.new_sim.initial_1d_water_level = OneDWaterLevel(value=value)
-        else:
-            self.new_sim.initial_1d_water_level = None
+            self.new_sim.initial_1d_water_level_file = None
+            self.new_sim.initial_1d_water_level_data = None
+        elif self.table_value_rb.isChecked():
+            # first check whether an online file is used, we'll reuse that
+            table_data = {}
+            for row in range(self.table.rowCount()):
+                node_id = int(self.table.item(row, 0).text())
+                value = float(self.table.item(row, 1).text())
+                table_data[node_id] = value
 
-        table_data = {}
-        for row in range(self.table.rowCount()):
-            node_id = int(self.table.item(row, 0).text())
-            value = float(self.table.item(row, 1).text())
-            table_data[node_id] = value
+            for level in self.initial_waterlevels_1d:
+                try:
+                    # skips this file when not able to retrieve
+                    data = self.fetch_level_data_from_api(level)
+                except Exception:
+                    continue
 
-        # online file
-        if self.online_value_rb.isChecked():
-            file_data = {}
-            current_level = self.online_value_cob.currentData()
-            if current_level:
-                data = self.fetch_level_data_from_api(current_level)
+                file_data = {}
                 for pair in data:
                     file_data[int(pair[0])] = float(pair[1])
-            # if the data in the table is the same as the selected file, we only need to store the file reference
-            # == operator takes order into account (same dicts with different order are equal)
-            if table_data == file_data:
-                QgsMessageLog.logMessage(
-                    f"1D water level {self.online_value_cob.currentText()} reused",
-                    level=Qgis.Info,
-                )
-            else:
-                # Otherwise we store the table itself as well, a new waterlevel file needs to be created
-                self.new_sim.initial_1d_water_level_data = dict(table_data)
 
-            # store the selected waterlevel as well
-            self.new_sim.initial_1d_water_level_file = OneDWaterLevelFile(
-                initial_waterlevel=current_level.url,
-                initial_waterlevel_id=current_level.id,
-            )
+                # if the data in the table is the same as the selected file, we only need to store the file reference
+                # == operator takes order into account (same dicts with different order are equal)
+                if table_data == file_data:
+                    QgsMessageLog.logMessage(
+                        f"1D water level {level.id} reused",
+                        level=Qgis.Info,
+                    )
 
-        else:
-            # In this case we store the table anyway, but need to remove the online file from the simulation
+                    # store the selected waterlevel
+                    self.new_sim.initial_1d_water_level_file = OneDWaterLevelFile(
+                        initial_waterlevel=level.url,
+                        initial_waterlevel_id=level.id,
+                    )
+                    self.new_sim.initial_1d_water_level_data = None
+                    self.new_sim.initial_1d_water_level = None
+                    return True
+
+            # Otherwise we store the table itself as well, a new waterlevel file needs to be created
             self.new_sim.initial_1d_water_level_file = None
             self.new_sim.initial_1d_water_level_data = dict(table_data)
+            # Remove constant data
+            self.new_sim.initial_1d_water_level = None
+        else:
+            self.new_sim.initial_1d_water_level_file = None
+            self.new_sim.initial_1d_water_level_data = None
+            self.new_sim.initial_1d_water_level = None
 
         return True
 
@@ -554,15 +571,19 @@ class InitialConditions1DPage(WizardPage):
         # Validate constant level
         if self.constant_value_rb.isChecked():
             if not self.constant_value_le.text():
+                QgsMessageLog.logMessage("No constant value entered")
                 return False
 
         # Does node already exist?
-        try:
-            node_ids, values = self._retrieve_current_nodes()
-            if len(set(node_ids)) != len(node_ids):
+        if self.table_value_rb.isChecked():
+            try:
+                node_ids, values = self._retrieve_current_nodes()
+                if len(set(node_ids)) != len(node_ids):
+                    QgsMessageLog.logMessage("Duplicates")
+                    return False
+            except Exception as e:
+                QgsMessageLog.logMessage(str(e))
                 return False
-        except Exception as e:
-            return False
 
         # Validate concentration (TODO)
 
