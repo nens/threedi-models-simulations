@@ -324,11 +324,7 @@ class SimulationRunner(QRunnable):
                 sim_id,
                 value=self.new_sim.initial_1d_water_level.value,
             )
-
-        # if initial_conditions.from_geopackage_1d:
-        #     self.tc.create_simulation_initial_1d_water_level_predefined(sim_id)
-
-        if self.new_sim.initial_1d_water_level_data:
+        elif self.new_sim.initial_1d_water_level_data:
             QgsMessageLog.logMessage("Writing new json for 1D water level")
             nodes_ids = []
             values = []
@@ -336,7 +332,7 @@ class SimulationRunner(QRunnable):
                 nodes_ids.append(node_id)
                 values.append(value)
 
-            upload_data = {"node_ids": nodes_ids, "value": values}
+            upload_data = {"node_ids": nodes_ids, "values": values}
 
             write_json_data(upload_data, INITIAL_WATERLEVELS_TEMPLATE)
 
@@ -392,13 +388,8 @@ class SimulationRunner(QRunnable):
                 self.threedi_api, sim_id, water_level_1d_file.id
             )
 
-        QgsMessageLog.logMessage("FILE")
-
         # Step 5: Create a new 1D initial water level file for the simulation
-        if (
-            self.new_sim.initial_1d_water_level_file is not None
-            and self.new_sim.initial_1d_water_level_data is not None
-        ):
+        if self.new_sim.initial_1d_water_level_data is not None:
             QgsMessageLog.logMessage(f"Adding waterlevel {initial_waterlevel_id}")
             create_simulation_initial_1d_water_level_file(
                 self.threedi_api, sim_id, initial_waterlevel=initial_waterlevel_id

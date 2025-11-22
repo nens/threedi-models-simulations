@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import tempfile
+from pathlib import Path
 
 import numpy as np
 from qgis.core import Qgis, QgsMessageLog
@@ -371,27 +372,10 @@ class InitialConditions1DPage(WizardPage):
 
                 self.completeChanged.emit()
 
-    def add_node_from_file(self):
-        # First retrieve the current values from the table
-        try:
-            current_node_ids, current_values = self._retrieve_current_nodes()
-        except Exception as e:
-            self.communication.show_warn(str(e), self, "Warning")
-            return
-
-        file_name, __ = QFileDialog.getOpenFileName(
-            self,
-            "Open 1D initial waterlevel file",
-            "",
-            "Comma-separated values (*.csv *.txt)",
-        )
-        if not file_name:
-            return
-
+    def _read_csv(self, file_name):
         new_node_ids = []
         new_values = []
 
-        # load the csv
         with open(file_name, encoding="utf-8-sig") as csvfile:
             reader = csv.DictReader(csvfile)
             header = reader.fieldnames
@@ -432,7 +416,28 @@ class InitialConditions1DPage(WizardPage):
                         self,
                         "Warning",
                     )
-                    return
+                    return None, None
+
+            return new_node_ids, new_values
+
+    def add_node_from_file(self):
+        # First retrieve the current values from the table
+        try:
+            current_node_ids, current_values = self._retrieve_current_nodes()
+        except Exception as e:
+            self.communication.show_warn(str(e), self, "Warning")
+            return
+
+        file_name, __ = QFileDialog.getOpenFileName(
+            self,
+            "Open 1D initial waterlevel file",
+            "",
+            "Comma-separated values (*.csv *.txt)",
+        )
+        if not file_name:
+            return
+
+        new_node_ids, new_values = self._read_csv(file_name)
 
         # Show duplicate node dialog with new data and currently loaded data
         d_dialog = DuplicateNodeDialog(
@@ -559,10 +564,19 @@ class InitialConditions1DPage(WizardPage):
             )
             get_download_file(download, file_path)
             with open(file_path, "rb") as data_file:
-                byte_data = data_file.read()
-                result = loadb(byte_data)
-                data = np.column_stack((result["node_ids"], result["value"]))
-                return data
+                extension = Path(file_path).suffix
+                if extension == ".msgpack":
+                    byte_data = data_file.read()
+                    result = loadb(byte_data)
+                    data = np.column_stack((result["node_ids"], result["value"]))
+                    return data
+                elif extension == ".json":
+                    data_str = data_file.read().decode("utf-8")
+                    result = json.loads(data_str)
+                    data = np.column_stack((result["node_ids"], result["values"]))
+                    return data
+                else:
+                    raise Exception(f"file extension {extension} not supported ")
 
     def validate_page(self):
         return self.is_complete()
