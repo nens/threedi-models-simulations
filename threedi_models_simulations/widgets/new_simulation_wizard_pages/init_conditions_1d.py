@@ -29,7 +29,6 @@ from qgis.PyQt.QtWidgets import (
 )
 from threedi_api_client.openapi import OneDWaterLevel, OneDWaterLevelFile
 
-from threedi_models_simulations.communication import UICommunication
 from threedi_models_simulations.utils.general import (
     IntDelegate,
     ScientificDoubleDelegate,

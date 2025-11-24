@@ -317,7 +317,6 @@ class SimulationRunner(QRunnable):
         threedimodel_id = self.new_sim.simulation.threedimodel_id
         QgsMessageLog.logMessage(str(self.new_sim), level=Qgis.Critical)
         # 1D
-        QgsMessageLog.logMessage("CONST")
         if self.new_sim.initial_1d_water_level is not None:
             create_simulation_initial_1d_water_level_constant(
                 self.threedi_api,
@@ -397,7 +396,7 @@ class SimulationRunner(QRunnable):
         elif self.new_sim.initial_1d_water_level_file is not None:
             # Reuse existing water_level
             QgsMessageLog.logMessage(
-                f"Reusing waterlevel {self.new_sim.initial_1d_water_level_file.id}"
+                f"Reusing waterlevel {self.new_sim.initial_1d_water_level_file.initial_waterlevel_id}"
             )
             create_simulation_initial_1d_water_level_file(
                 self.threedi_api,
